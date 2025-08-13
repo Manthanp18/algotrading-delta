@@ -10,48 +10,35 @@ class DashboardServer {
     this.tradesDir = path.join(__dirname, 'trades');
     this.isRunning = false;
     
-    // Ensure trades directory exists
     fs.ensureDirSync(this.tradesDir);
-    
     this.setupRoutes();
   }
   
   setupRoutes() {
-    // Serve static files
     this.app.use(express.static(__dirname));
     
-    // API endpoint for dashboard data
     this.app.get('/api/dashboard', async (req, res) => {
       try {
-        const dashboardData = await this.getDashboardData();
-        res.json(dashboardData);
+        res.json(await this.getDashboardData());
       } catch (error) {
         console.error('Dashboard API error:', error.message);
         res.status(500).json({ error: 'Failed to fetch dashboard data' });
       }
     });
     
-    // API endpoint for recent trades
     this.app.get('/api/trades', async (req, res) => {
       try {
-        const trades = await this.getRecentTrades();
-        res.json(trades);
+        res.json(await this.getRecentTrades());
       } catch (error) {
         console.error('Trades API error:', error.message);
         res.status(500).json({ error: 'Failed to fetch trades' });
       }
     });
     
-    // Health check endpoint
     this.app.get('/api/health', (req, res) => {
-      res.json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime()
-      });
+      res.json({ status: 'healthy', timestamp: new Date().toISOString(), uptime: process.uptime() });
     });
     
-    // Main dashboard route
     this.app.get('/', (req, res) => {
       res.sendFile(path.join(__dirname, 'index.html'));
     });
@@ -59,7 +46,6 @@ class DashboardServer {
   
   async getDashboardData() {
     try {
-      // Read current session data
       const sessionFile = path.join(this.tradesDir, 'current_session.json');
       let sessionData = {};
       
@@ -67,23 +53,17 @@ class DashboardServer {
         sessionData = await fs.readJson(sessionFile);
       }
       
-      // Read recent trades
       const recentTrades = await this.getRecentTrades(10);
-      
-      // Calculate additional metrics
       const completedTrades = recentTrades.filter(trade => trade.status === 'CLOSED');
       const winningTrades = completedTrades.filter(trade => (trade.pnl || 0) > 0);
       const totalPnL = completedTrades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
       
       return {
-        // Portfolio data
         portfolio: sessionData.portfolio || {
           equity: sessionData.initialCapital || 0,
           totalReturn: 0,
           cash: sessionData.initialCapital || 0
         },
-        
-        // Trading metrics
         metrics: {
           totalTrades: completedTrades.length,
           winningTrades: winningTrades.length,
@@ -92,19 +72,13 @@ class DashboardServer {
           totalPnL: totalPnL,
           ...sessionData.metrics
         },
-        
-        // System info
         symbol: sessionData.symbol || 'BTCUSD',
         strategy: sessionData.strategy || 'Confluence Scalping Strategy',
         uptime: sessionData.startTime ? Date.now() - new Date(sessionData.startTime).getTime() : 0,
         lastCandleTime: sessionData.lastCandleTime,
         lastPrice: sessionData.lastPrice,
         openPositions: sessionData.openPositions || 0,
-        
-        // Recent trades
         recentTrades: recentTrades,
-        
-        // Server status
         serverTime: new Date().toISOString(),
         isRunning: this.isRunning
       };
@@ -130,12 +104,10 @@ class DashboardServer {
       
       let trades = [];
       
-      // Read today's trades
       if (await fs.pathExists(todayFile)) {
         trades = await fs.readJson(todayFile);
       }
       
-      // If we need more trades, read yesterday's file
       if (trades.length < limit) {
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         const yesterdayFile = path.join(this.tradesDir, `trades_${yesterday}.json`);
@@ -146,7 +118,6 @@ class DashboardServer {
         }
       }
       
-      // Sort by timestamp (newest first) and limit
       return trades
         .sort((a, b) => new Date(b.entryTime || b.timestamp) - new Date(a.entryTime || a.timestamp))
         .slice(0, limit);
@@ -167,11 +138,7 @@ class DashboardServer {
         trades = await fs.readJson(todayFile);
       }
       
-      trades.push({
-        ...trade,
-        timestamp: new Date().toISOString()
-      });
-      
+      trades.push({ ...trade, timestamp: new Date().toISOString() });
       await fs.writeJson(todayFile, trades, { spaces: 2 });
       console.log(`💾 Trade saved: ${trade.type} ${trade.quantity} at $${trade.entryPrice || trade.price}`);
       
@@ -183,14 +150,7 @@ class DashboardServer {
   async updateSessionData(sessionData) {
     try {
       const sessionFile = path.join(this.tradesDir, 'current_session.json');
-      
-      const data = {
-        ...sessionData,
-        lastUpdate: new Date().toISOString()
-      };
-      
-      await fs.writeJson(sessionFile, data, { spaces: 2 });
-      
+      await fs.writeJson(sessionFile, { ...sessionData, lastUpdate: new Date().toISOString() }, { spaces: 2 });
     } catch (error) {
       console.error('Error updating session data:', error.message);
     }
@@ -218,9 +178,7 @@ class DashboardServer {
   }
   
   async stop() {
-    if (!this.isRunning) {
-      return;
-    }
+    if (!this.isRunning) return;
     
     return new Promise((resolve) => {
       if (this.server) {
