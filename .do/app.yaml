@@ -1,0 +1,27 @@
+name: live-trading-system
+services:
+- name: trading-dashboard
+  source_dir: /
+  github:
+    repo: your-username/live-trading-system
+    branch: main
+  run_command: node server-live.js
+  environment_slug: node-js
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  env_vars:
+  - key: NODE_ENV
+    value: production
+  - key: TRADING_SYMBOL
+    value: BTCUSD
+  - key: INITIAL_CAPITAL
+    value: "50000"
+  - key: POSITION_SIZE
+    value: "0.1"
+  # Add these in DigitalOcean dashboard:
+  # - key: DELTA_API_KEY
+  #   value: your_key_here
+  # - key: DELTA_API_SECRET
+  #   value: your_secret_here
+  - key: DELTA_BASE_URL
+    value: https://api.india.delta.exchange

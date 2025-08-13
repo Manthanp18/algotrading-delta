@@ -1,0 +1,43 @@
+{
+  "name": "Live Trading System",
+  "description": "Crypto trading bot with confluenceScalpingStrategy and web dashboard",
+  "repository": "https://github.com/your-username/live-trading-system",
+  "keywords": ["trading", "cryptocurrency", "dashboard", "nodejs"],
+  "env": {
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    },
+    "DELTA_API_KEY": {
+      "description": "Delta Exchange API Key",
+      "required": true
+    },
+    "DELTA_API_SECRET": {
+      "description": "Delta Exchange API Secret",
+      "required": true
+    },
+    "DELTA_BASE_URL": {
+      "description": "Delta Exchange Base URL",
+      "value": "https://api.india.delta.exchange"
+    },
+    "TRADING_SYMBOL": {
+      "description": "Trading symbol",
+      "value": "BTCUSD"
+    },
+    "INITIAL_CAPITAL": {
+      "description": "Initial trading capital",
+      "value": "50000"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server-live.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/server-live.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "TRADING_SYMBOL": "BTCUSD",
+    "INITIAL_CAPITAL": "50000",
+    "POSITION_SIZE": "0.1",
+    "DELTA_BASE_URL": "https://api.india.delta.exchange"
+  }
+}
