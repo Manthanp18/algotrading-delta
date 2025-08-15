@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { backendAPI } from '@/lib/api-client';
+
+// For local development
 import fs from 'fs';
 import path from 'path';
 
@@ -26,7 +29,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
     
-    // Path to the dashboard trades directory in the main project
+    // In production, use the backend API
+    if (process.env.NODE_ENV === 'production') {
+      const data = await backendAPI.getAnalytics(date);
+      return NextResponse.json(data);
+    }
+    
+    // In development, read from local file system
     const tradesDir = path.join(process.cwd(), '..', 'backend', 'dashboard', 'trades');
     const tradesFile = path.join(tradesDir, `trades_${date}.json`);
     

@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { backendAPI } from '@/lib/api-client';
+
+// For local development
 import fs from 'fs';
 import path from 'path';
 
@@ -36,7 +39,13 @@ interface SessionData {
 
 export async function GET() {
   try {
-    // Path to the current session file in the backend folder
+    // In production, use the backend API
+    if (process.env.NODE_ENV === 'production') {
+      const data = await backendAPI.getSession();
+      return NextResponse.json(data);
+    }
+    
+    // In development, read from local file system
     const sessionFile = path.join(process.cwd(), '..', 'backend', 'dashboard', 'trades', 'current_session.json');
     
     if (!fs.existsSync(sessionFile)) {

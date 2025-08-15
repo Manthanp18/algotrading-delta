@@ -2,21 +2,25 @@
   "version": 2,
   "builds": [
     {
-      "src": "server-live.js",
+      "src": "api/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/server-live.js"
+      "dest": "/api/index.js"
     }
   ],
   "env": {
     "NODE_ENV": "production",
-    "TRADING_SYMBOL": "BTCUSD",
-    "INITIAL_CAPITAL": "50000",
-    "POSITION_SIZE": "0.1",
-    "DELTA_BASE_URL": "https://api.india.delta.exchange"
+    "DELTA_API_KEY": "@delta_api_key",
+    "DELTA_API_SECRET": "@delta_api_secret",
+    "DELTA_BASE_URL": "@delta_base_url"
+  },
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
+    }
   }
 }
