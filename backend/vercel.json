@@ -11,11 +11,5 @@
       "src": "/(.*)",
       "dest": "/api/index.js"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "DELTA_API_KEY": "@delta_api_key",
-    "DELTA_API_SECRET": "@delta_api_secret",
-    "DELTA_BASE_URL": "@delta_base_url"
-  }
+  ]
 }
