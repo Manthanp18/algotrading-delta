@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { backendAPI } from '@/lib/api-client';
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const level = searchParams.get('level') || 'all';
+  const limit = searchParams.get('limit') || '100';
+  
   try {
-    const { searchParams } = new URL(request.url);
-    const level = searchParams.get('level') || 'all';
-    const limit = searchParams.get('limit') || '100';
-    
     // Try to use the backend API
     const data = await backendAPI.getLogs(level, parseInt(limit));
     return NextResponse.json(data);
