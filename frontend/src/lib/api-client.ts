@@ -72,6 +72,15 @@ function getEmptyResponse(endpoint: string) {
     };
   }
   
+  if (endpoint.includes('/api/logs')) {
+    return {
+      logs: [],
+      totalLogs: 0,
+      logLevel: 'all',
+      lastUpdate: new Date().toISOString()
+    };
+  }
+  
   return {};
 }
 
@@ -89,6 +98,15 @@ export const backendAPI = {
   getAnalytics: (date?: string) => {
     const params = date ? `?date=${date}` : '';
     return fetchFromBackend(`/api/analytics${params}`);
+  },
+  
+  // Logs endpoints
+  getLogs: (level?: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (level) params.append('level', level);
+    if (limit) params.append('limit', limit.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return fetchFromBackend(`/api/logs${query}`);
   },
   
   // Health check

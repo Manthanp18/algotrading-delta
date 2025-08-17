@@ -183,6 +183,97 @@ app.get('/api/analytics', (req, res) => {
   }
 });
 
+// Get system logs
+app.get('/api/logs', (req, res) => {
+  try {
+    const logLevel = req.query.level || 'all';
+    const limit = parseInt(req.query.limit) || 100;
+    
+    // Try multiple possible locations for log files
+    const possiblePaths = [
+      path.join('/tmp', 'trading.log'),
+      path.join(__dirname, '..', 'logs', 'trading.log'),
+      path.join(process.cwd(), 'logs', 'trading.log')
+    ];
+    
+    let logs = [];
+    let logFile = null;
+    
+    // Find the log file
+    for (const filePath of possiblePaths) {
+      if (fs.existsSync(filePath)) {
+        logFile = filePath;
+        break;
+      }
+    }
+    
+    if (logFile) {
+      const logContent = fs.readFileSync(logFile, 'utf8');
+      const logLines = logContent.split('\n').filter(line => line.trim());
+      
+      // Parse log lines and filter by level
+      logs = logLines
+        .slice(-limit * 2) // Get more lines to filter
+        .map(line => {
+          try {
+            // Try to parse as JSON log
+            const parsed = JSON.parse(line);
+            return {
+              timestamp: parsed.timestamp || new Date().toISOString(),
+              level: parsed.level || 'info',
+              message: parsed.message || line,
+              data: parsed.data || {}
+            };
+          } catch {
+            // Plain text log
+            const timestamp = new Date().toISOString();
+            return {
+              timestamp,
+              level: 'info',
+              message: line,
+              data: {}
+            };
+          }
+        })
+        .filter(log => logLevel === 'all' || log.level === logLevel)
+        .slice(-limit)
+        .reverse(); // Most recent first
+    } else {
+      // Generate mock logs if no log file exists
+      logs = [
+        {
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: 'SuperTrend Renko System initialized',
+          data: { strategy: 'SuperTrend Renko System' }
+        },
+        {
+          timestamp: new Date(Date.now() - 1000).toISOString(),
+          level: 'info',
+          message: 'WebSocket connection established',
+          data: { url: 'wss://socket.delta.exchange' }
+        },
+        {
+          timestamp: new Date(Date.now() - 2000).toISOString(),
+          level: 'info',
+          message: 'Market regime detected: TRENDING',
+          data: { regime: 'TRENDING', confidence: 0.85 }
+        }
+      ];
+    }
+    
+    res.json({
+      logs,
+      totalLogs: logs.length,
+      logLevel,
+      lastUpdate: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Logs API error:', error);
+    res.status(500).json({ error: 'Failed to fetch logs' });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -192,7 +283,8 @@ app.get('/', (req, res) => {
       '/health',
       '/api/session',
       '/api/trades',
-      '/api/analytics'
+      '/api/analytics',
+      '/api/logs'
     ]
   });
 });

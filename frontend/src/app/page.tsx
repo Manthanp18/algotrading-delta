@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import TradesTable from '@/components/trades/TradesTable';
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard';
 import PositionDetails from '@/components/positions/PositionDetails';
-import { BarChart3, TrendingUp, Table, RefreshCw } from 'lucide-react';
+import LogsViewer from '@/components/logs/LogsViewer';
+import { BarChart3, TrendingUp, Table, RefreshCw, Activity } from 'lucide-react';
 
-type TabType = 'positions' | 'trades' | 'analytics';
+type TabType = 'positions' | 'trades' | 'analytics' | 'logs';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('positions');
@@ -42,6 +43,12 @@ export default function Dashboard() {
       name: 'Analytics',
       icon: BarChart3,
       description: 'Performance metrics and charts'
+    },
+    {
+      id: 'logs' as TabType,
+      name: 'System Logs',
+      icon: Activity,
+      description: 'Live backend logs and trading activity'
     }
   ];
 
@@ -111,6 +118,7 @@ export default function Dashboard() {
           {activeTab === 'positions' && <PositionDetails />}
           {activeTab === 'trades' && <TradesTable />}
           {activeTab === 'analytics' && <AnalyticsDashboard />}
+          {activeTab === 'logs' && <LogsViewer />}
         </div>
       </main>
 
