@@ -4,9 +4,9 @@
   "description": "A backtesting engine for trading strategies using Delta Exchange API",
   "main": "index.js",
   "scripts": {
-    "start": "node live-trading-continuous.js",
-    "dev": "nodemon live-trading-continuous.js",
-    "start:dev": "nodemon live-trading-continuous.js",
+    "start": "node live-trading-supertrend-renko.js",
+    "dev": "nodemon live-trading-supertrend-renko.js",
+    "start:dev": "nodemon live-trading-supertrend-renko.js",
     "test": "jest",
     "backtest": "node index.js",
     "backtest:cli": "node cli.js run",

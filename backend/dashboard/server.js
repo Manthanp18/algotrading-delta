@@ -73,7 +73,7 @@ class DashboardServer {
           ...sessionData.metrics
         },
         symbol: sessionData.symbol || 'BTCUSD',
-        strategy: sessionData.strategy || 'Confluence Scalping Strategy',
+        strategy: sessionData.strategy || 'SuperTrend Renko System',
         uptime: sessionData.startTime ? Date.now() - new Date(sessionData.startTime).getTime() : 0,
         lastCandleTime: sessionData.lastCandleTime,
         lastPrice: sessionData.lastPrice,
