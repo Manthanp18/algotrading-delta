@@ -85,7 +85,7 @@ const LogEntry = ({ log, expanded, onToggle }: {
 export default function LogsViewer() {
   const [logsData, setLogsData] = useState<LogsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string } | null>(null);
   const [logLevel, setLogLevel] = useState('all');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
@@ -99,7 +99,7 @@ export default function LogsViewer() {
       const data = await response.json();
       setLogsData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch logs');
+      setError({ message: err instanceof Error ? err.message : 'Failed to fetch logs' });
     } finally {
       setLoading(false);
     }
