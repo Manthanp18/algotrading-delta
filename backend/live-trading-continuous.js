@@ -6,20 +6,30 @@
  * Auto-reconnection ensures continuous data flow
  */
 
-const ConfluenceScalpingStrategy = require('./legacy-src/strategies/confluenceScalpingStrategy');
+const SuperTrendRenkoStrategy = require('./legacy-src/strategies/superTrendRenkoStrategy');
 const { Portfolio } = require('./legacy-src/backtestEngine');
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🚀 Continuous Production Trading System (24/7)');
+console.log('🚀 PROFESSIONAL SUPERTREND RENKO TRADING SYSTEM (24/7)');
 console.log('=' .repeat(60));
 
-const strategy = new ConfluenceScalpingStrategy(0.05);
+const strategy = new SuperTrendRenkoStrategy({
+  atrMultiplier: 0.4,               // Professional brick sizing
+  supertrendPeriod: 10,
+  supertrendMultiplier: 3.0,
+  minConfluenceScore: 7,            // High-quality signals only
+  maxRiskPerTrade: 0.02,            // 2% risk per trade
+  minRiskReward: 3.0,               // 3:1 minimum R/R
+  cooldownSeconds: 30
+});
 const portfolio = new Portfolio(100000);
 
 console.log(`💰 Initial Portfolio: $${portfolio.initialCapital.toLocaleString()}`);
-console.log(`📊 Position Size: 5% | Auto-Reconnect: ON`);
+console.log(`🎯 Strategy: ${strategy.name}`);
+console.log(`📊 Risk per trade: 2% | Min R/R: 3:1`);
+console.log(`⭐ Min Confluence: 7/10 | Auto-Reconnect: ON`);
 console.log(`⏰ Runtime: Continuous (Stop with Ctrl+C)\n`);
 
 // Core data
@@ -33,7 +43,7 @@ let lastPrice = null;
 let trades = [];
 let ws = null;
 let reconnectAttempts = 0;
-let maxReconnectAttempts = 10000; // Virtually unlimited
+let maxReconnectAttempts = 50; // Limited reconnection attempts
 let lastUpdateTime = Date.now();
 let sessionHighEquity = 100000;
 let sessionLowEquity = 100000;
@@ -68,7 +78,7 @@ function saveSessionData() {
   
   const sessionData = {
     symbol: 'BTCUSD',
-    strategy: 'Confluence Scalping',
+    strategy: 'Elite BTC Scalping',
     initialCapital: portfolio.initialCapital,
     startTime: new Date(startTime).toISOString(),
     portfolio: {
@@ -99,7 +109,7 @@ function saveSessionData() {
   fs.writeFileSync(sessionFile, JSON.stringify(sessionData, null, 2));
 }
 
-function createBootstrapCandles(price, count = 20) {
+function createBootstrapCandles(price, count = 15) {
   const candles = [];
   const now = new Date();
   
@@ -142,10 +152,12 @@ const performanceTracker = setInterval(() => {
   console.log(`📈 Session High: $${sessionHighEquity.toLocaleString()} | Low: $${sessionLowEquity.toLocaleString()}`);
   console.log(`🔗 Connection: ${getConnectionStatus()} | Last Update: ${timeSinceLastUpdate}s ago`);
   
-  // Auto-reconnect if no updates for 30 seconds
-  if (timeSinceLastUpdate > 30 && reconnectAttempts < maxReconnectAttempts) {
+  // Auto-reconnect if no updates for 60 seconds (increased threshold)
+  if (timeSinceLastUpdate > 60 && reconnectAttempts < maxReconnectAttempts) {
     console.log(`⚠️ No updates for ${timeSinceLastUpdate}s - reconnecting...`);
     reconnectWebSocket();
+  } else if (reconnectAttempts >= maxReconnectAttempts) {
+    console.log(`❌ WebSocket permanently failed. Running in offline mode...`);
   }
   
   const btcPosition = portfolio.positions.get('BTCUSD');
@@ -223,21 +235,65 @@ function updateCurrentCandle(price, volume = 1000) {
   }
 }
 
-function closeExistingPosition(currentPrice) {
+// Check if current position should be closed based on profit targets or stop loss
+function checkTargetsAndStops(currentPrice) {
+  const position = portfolio.positions.get('BTCUSD');
+  if (!position || position.quantity === 0) return false;
+  
+  // Find the open trade to get targets
+  const openTrade = trades.find(t => t.status === 'OPEN');
+  if (!openTrade) return false;
+  
+  const entryPrice = openTrade.entryPrice;
+  const takeProfitPrice = openTrade.takeProfitPrice;
+  const stopLossPrice = openTrade.stopLossPrice;
+  
+  let shouldClose = false;
+  let exitReason = '';
+  
+  // Check profit target
+  if (position.quantity > 0) { // Long position
+    if (currentPrice >= takeProfitPrice) {
+      shouldClose = true;
+      exitReason = `Take Profit: +${(currentPrice - entryPrice).toFixed(0)} points`;
+    } else if (currentPrice <= stopLossPrice) {
+      shouldClose = true;
+      exitReason = `Stop Loss: ${(currentPrice - entryPrice).toFixed(0)} points`;
+    }
+  } else { // Short position (if implemented)
+    if (currentPrice <= takeProfitPrice) {
+      shouldClose = true;
+      exitReason = `Take Profit: +${(entryPrice - currentPrice).toFixed(0)} points`;
+    } else if (currentPrice >= stopLossPrice) {
+      shouldClose = true;
+      exitReason = `Stop Loss: ${(entryPrice - currentPrice).toFixed(0)} points`;
+    }
+  }
+  
+  if (shouldClose) {
+    closeExistingPosition(currentPrice, exitReason);
+    return true;
+  }
+  
+  return false;
+}
+
+function closeExistingPosition(currentPrice, reason = 'Manual close') {
   const position = portfolio.positions.get('BTCUSD');
   if (position && position.quantity > 0) {
-    console.log(`\n🔄 CLOSING POSITION:`);
+    console.log(`\n🎯 CLOSING POSITION: ${reason}`);
     console.log(`📊 Closing ${position.quantity.toFixed(6)} BTC @ $${currentPrice.toFixed(2)}`);
     
     const sellValue = position.quantity * currentPrice;
     const buyValue = position.quantity * position.averagePrice;
     const pnl = sellValue - buyValue;
     const pnlPercent = (pnl / buyValue) * 100;
+    const pnlPoints = currentPrice - position.averagePrice;
     
     portfolio.cash += sellValue;
     portfolio.positions.delete('BTCUSD');
     
-    console.log(`✅ Position closed: P&L $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)`);
+    console.log(`✅ Position closed: P&L $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%) | ${pnlPoints.toFixed(0)} points`);
     console.log(`💰 New Cash: $${portfolio.cash.toLocaleString()}`);
     
     // Find the open trade to close
@@ -248,8 +304,9 @@ function closeExistingPosition(currentPrice) {
       openTrade.exitTime = new Date().toISOString();
       openTrade.pnl = pnl;
       openTrade.pnlPercent = pnlPercent;
+      openTrade.points = pnlPoints;
       openTrade.holdingPeriod = Math.floor((Date.now() - new Date(openTrade.entryTime).getTime()) / 60000);
-      openTrade.exitReason = 'Signal reversal';
+      openTrade.exitReason = reason;
       
       // Update the trade in the file
       const date = new Date().toISOString().split('T')[0];
@@ -270,6 +327,7 @@ function closeExistingPosition(currentPrice) {
       price: currentPrice,
       pnl: pnl,
       pnlPercent: pnlPercent,
+      points: pnlPoints,
       timestamp: new Date()
     });
     
@@ -282,13 +340,18 @@ function completeCurrentCandle() {
   if (!currentCandle) return;
   
   candleHistory.push({ ...currentCandle });
-  if (candleHistory.length > 100) candleHistory.shift();
+  if (candleHistory.length > 50) candleHistory.shift(); // Reduced to prevent memory leaks
+  
+  // Clean up old trades to prevent memory leaks
+  if (trades.length > 1000) {
+    trades = trades.slice(-500); // Keep only last 500 trades
+  }
   
   console.log(`\n✅ CANDLE #${candleHistory.length}:`);
   console.log(`⏰ ${currentCandle.timestamp.toISOString().substring(11, 19)}`);
   console.log(`📊 O:${currentCandle.open.toFixed(2)} H:${currentCandle.high.toFixed(2)} L:${currentCandle.low.toFixed(2)} C:${currentCandle.close.toFixed(2)} V:${currentCandle.volume.toLocaleString()}`);
   
-  if (candleHistory.length >= 15) {
+  if (candleHistory.length >= 12) {
     try {
       const signal = strategy.generateSignal(currentCandle, candleHistory, portfolio);
       
@@ -319,7 +382,11 @@ function executeTradeSignal(signal, candle) {
   console.log(`\n💰 EXECUTING TRADE #${tradeCount}:`);
   
   try {
-    closeExistingPosition(candle.close);
+    // Only close position if signal is an EXIT signal, not on every trade
+    if (signal.signal_type === 'EXIT') {
+      closeExistingPosition(candle.close);
+      return; // Exit after closing
+    }
     
     if (signal.action === 'BUY') {
       const positionValue = portfolio.cash * 0.05;
@@ -345,9 +412,9 @@ function executeTradeSignal(signal, candle) {
         quantity: quantity,
         entryPrice: candle.close,
         entryTime: new Date().toISOString(),
-        reason: signal.reason || 'Confluence signal',
-        takeProfitPrice: candle.close * 1.03,
-        stopLossPrice: candle.close * 0.98,
+        reason: signal.reason || 'Elite scalping signal',
+        takeProfitPrice: signal.takeProfitPrice || candle.close + 250,
+        stopLossPrice: signal.stopLossPrice || candle.close - 120,
         status: 'OPEN',
         timestamp: new Date().toISOString()
       };
@@ -372,7 +439,7 @@ function connectWebSocket() {
   
   ws.on('open', () => {
     console.log('✅ WebSocket connected successfully');
-    reconnectAttempts = 0;
+    reconnectAttempts = 0; // Reset counter on successful connection
     
     const subscribeMessage = {
       type: 'subscribe',
@@ -404,6 +471,11 @@ function connectWebSocket() {
       if (message.type === 'v2/ticker') {
         currentPrice = parseFloat(message.close || message.mark_price);
         volume = parseFloat(message.volume || 1000);
+        
+        // Log mark price if available
+        if (message.mark_price) {
+          console.log(`📍 Mark Price: $${parseFloat(message.mark_price).toFixed(2)} | Time: ${new Date().toISOString().substring(11, 19)}`);
+        }
       } else if (message.type === 'l2_orderbook' && message.buy && message.buy[0]) {
         currentPrice = parseFloat(message.buy[0].limit_price);
         volume = parseFloat(message.buy[0].size || 100);
@@ -414,11 +486,14 @@ function connectWebSocket() {
         
         if (candleHistory.length === 0 && !lastPrice) {
           console.log(`🧪 Bootstrap from: $${currentPrice.toFixed(2)}`);
-          candleHistory = createBootstrapCandles(currentPrice, 20);
+          candleHistory = createBootstrapCandles(currentPrice, 15);
           console.log(`✅ Ready with ${candleHistory.length} candles\n`);
         }
         
         updateCurrentCandle(currentPrice, volume);
+        
+        // Check profit targets and stop losses BEFORE processing new signals
+        checkTargetsAndStops(currentPrice);
         
         const position = portfolio.positions.get('BTCUSD');
         if (position) {
@@ -435,12 +510,22 @@ function connectWebSocket() {
   
   ws.on('close', (code, reason) => {
     console.log(`🔌 WebSocket disconnected: ${code} ${reason}`);
-    reconnectWebSocket();
+    // Only reconnect if we haven't exceeded max attempts
+    if (reconnectAttempts < maxReconnectAttempts) {
+      reconnectWebSocket();
+    } else {
+      console.log(`❌ Max reconnection attempts reached. Stopping reconnections.`);
+    }
   });
   
   ws.on('error', (error) => {
     console.error(`❌ WebSocket error: ${error.message}`);
-    reconnectWebSocket();
+    // Only reconnect if we haven't exceeded max attempts
+    if (reconnectAttempts < maxReconnectAttempts) {
+      reconnectWebSocket();
+    } else {
+      console.log(`❌ Max reconnection attempts reached. Stopping reconnections.`);
+    }
   });
   
   return ws;
@@ -455,12 +540,24 @@ function reconnectWebSocket() {
   }
   
   reconnectAttempts++;
-  const backoffTime = Math.min(5000 * Math.min(reconnectAttempts, 6), 30000);
   
-  console.log(`🔄 Reconnecting in ${backoffTime/1000}s (attempt ${reconnectAttempts})...`);
+  // Check if we've exceeded max attempts
+  if (reconnectAttempts > maxReconnectAttempts) {
+    console.error(`❌ Max reconnection attempts (${maxReconnectAttempts}) exceeded!`);
+    console.log(`💡 WebSocket connection failed permanently. Exiting...`);
+    cleanup();
+    return;
+  }
+  
+  // Exponential backoff with maximum delay
+  const backoffTime = Math.min(1000 * Math.pow(2, Math.min(reconnectAttempts, 10)), 60000);
+  
+  console.log(`🔄 Reconnecting in ${backoffTime/1000}s (attempt ${reconnectAttempts}/${maxReconnectAttempts})...`);
   
   setTimeout(() => {
-    connectWebSocket();
+    if (reconnectAttempts <= maxReconnectAttempts) {
+      connectWebSocket();
+    }
   }, backoffTime);
 }
 
