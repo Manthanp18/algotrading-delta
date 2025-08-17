@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Activity, RefreshCw, Filter, Download, Eye, EyeOff } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Activity, RefreshCw, Download, Eye, EyeOff } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { LoadingStates } from '@/components/ui/LoadingStates';
+import { LoadingSkeleton } from '@/components/ui/LoadingStates';
 import { ErrorState } from '@/components/ui/ErrorStates';
 
 interface LogEntry {
   timestamp: string;
   level: 'info' | 'error' | 'warn' | 'debug';
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 interface LogsData {
@@ -91,7 +91,7 @@ export default function LogsViewer() {
   const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       setError(null);
       const response = await fetch(`/api/logs?level=${logLevel}&limit=100`);
@@ -103,18 +103,18 @@ export default function LogsViewer() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [logLevel]);
 
   useEffect(() => {
     fetchLogs();
-  }, [logLevel]);
+  }, [fetchLogs]);
 
   useEffect(() => {
     if (!autoRefresh) return;
     
     const interval = setInterval(fetchLogs, 3000); // Refresh every 3 seconds
     return () => clearInterval(interval);
-  }, [autoRefresh, logLevel]);
+  }, [autoRefresh, fetchLogs]);
 
   useEffect(() => {
     // Auto-scroll to bottom when new logs arrive
@@ -152,7 +152,13 @@ export default function LogsViewer() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return <LoadingStates.Card />;
+  if (loading) return (
+    <Card>
+      <div className="p-6">
+        <LoadingSkeleton />
+      </div>
+    </Card>
+  );
   if (error) return <ErrorState error={error} onRetry={fetchLogs} title="Failed to Load Logs" />;
 
   return (
