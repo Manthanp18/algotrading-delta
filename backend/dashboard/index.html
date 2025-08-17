@@ -33,6 +33,10 @@
         .auto-refresh { position: fixed; top: 20px; right: 20px; background: #333; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; }
         .timestamp { font-size: 0.8rem; color: #666; }
         .no-data { text-align: center; padding: 40px; color: #666; font-style: italic; }
+        .regime-trending { color: #00ff88; font-weight: bold; }
+        .regime-ranging { color: #ffaa00; font-weight: bold; }
+        .strategy-primary { color: #00ff88; font-weight: bold; }
+        .strategy-secondary { color: #ffaa00; font-weight: bold; }
         @media (max-width: 768px) {
             .metrics-grid { grid-template-columns: 1fr; }
             .trades-table { font-size: 0.8rem; }
@@ -98,9 +102,55 @@
             <div style="padding: 20px;">
                 <div><strong>Symbol:</strong> <span id="tradingSymbol">--</span></div>
                 <div><strong>Strategy:</strong> <span id="strategy">--</span></div>
+                <div><strong>Market Regime:</strong> <span id="marketRegime">--</span></div>
+                <div><strong>Active Strategy:</strong> <span id="activeStrategy">--</span></div>
                 <div><strong>Session Uptime:</strong> <span id="uptime">--</span></div>
                 <div><strong>Last Candle:</strong> <span id="lastCandle">--</span></div>
                 <div><strong>Open Positions:</strong> <span id="openPositions">--</span></div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">SuperTrend Strategy Metrics</div>
+            </div>
+            <div style="padding: 20px;">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="confluenceScore">0.0</div>
+                        <div class="metric-label">Avg Confluence Score</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="superTrendSignals">0</div>
+                        <div class="metric-label">SuperTrend Signals</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="macdConfirmations">0</div>
+                        <div class="metric-label">MACD Confirmations</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="volumeSurges">0</div>
+                        <div class="metric-label">Volume Surges</div>
+                    </div>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="bollingerBounces">0</div>
+                        <div class="metric-label">Bollinger Bounces</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="stochasticCrossovers">0</div>
+                        <div class="metric-label">Stochastic Crossovers</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="emaTrendFilters">0</div>
+                        <div class="metric-label">EMA Trend Filters</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalBricks">0</div>
+                        <div class="metric-label">Total Renko Bricks</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -155,9 +205,42 @@
             
             document.getElementById('tradingSymbol').textContent = data.symbol || '--';
             document.getElementById('strategy').textContent = data.strategy || '--';
+            
+            // Apply visual styling to market regime
+            const marketRegimeElement = document.getElementById('marketRegime');
+            marketRegimeElement.textContent = data.marketRegime || '--';
+            marketRegimeElement.className = data.marketRegime === 'TRENDING' ? 'regime-trending' : 'regime-ranging';
+            
+            // Apply visual styling to active strategy
+            const activeStrategyElement = document.getElementById('activeStrategy');
+            activeStrategyElement.textContent = data.activeStrategy || '--';
+            activeStrategyElement.className = data.activeStrategy === 'PRIMARY' ? 'strategy-primary' : 'strategy-secondary';
             document.getElementById('uptime').textContent = formatUptime(data.uptime || 0);
             document.getElementById('lastCandle').textContent = data.lastCandleTime ? new Date(data.lastCandleTime).toLocaleString() : '--';
             document.getElementById('openPositions').textContent = openPositions;
+            
+            // Update SuperTrend strategy metrics
+            if (data.strategies) {
+                const primary = data.strategies.primary || {};
+                const secondary = data.strategies.secondary || {};
+                
+                document.getElementById('confluenceScore').textContent = primary.confluence || '0.0';
+                document.getElementById('superTrendSignals').textContent = primary.superTrendSignals || '0';
+                document.getElementById('macdConfirmations').textContent = primary.macdConfirmations || '0';
+                document.getElementById('volumeSurges').textContent = primary.volumeSurges || '0';
+                
+                document.getElementById('bollingerBounces').textContent = secondary.bollingerBounces || '0';
+                document.getElementById('stochasticCrossovers').textContent = secondary.stochasticCrossovers || '0';
+                document.getElementById('emaTrendFilters').textContent = secondary.emaTrendFilters || '0';
+            }
+            
+            // Update total bricks (from either strategy)
+            let totalBricks = 0;
+            if (data.strategies && data.strategies.primary) {
+                // This data would come from the trading system's session data
+                totalBricks = data.totalBricks || 0;
+            }
+            document.getElementById('totalBricks').textContent = totalBricks;
             
             updateTradesTable(data.recentTrades || []);
             document.getElementById('updateTime').textContent = new Date().toLocaleString();
