@@ -1,25 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendAPI } from '@/lib/api-client';
 
-interface Trade {
-  id?: string;
-  symbol: string;
-  type: string;
-  signal_type: string;
-  quantity: number;
-  entryPrice: number;
-  entryTime: string;
-  reason: string;
-  takeProfitPrice?: number;
-  stopLossPrice?: number;
-  status: string;
-  exitPrice?: number;
-  exitTime?: string;
-  pnl?: number;
-  pnlPercent?: number;
-  holdingPeriod?: number;
-  exitReason?: string;
+interface TradeItem {
   timestamp: string;
+  status: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -31,14 +15,14 @@ export async function GET(request: NextRequest) {
     const trades = await backendAPI.getTrades(date || undefined);
     
     // Sort trades by timestamp descending (most recent first)
-    trades.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    trades.sort((a: TradeItem, b: TradeItem) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
     return NextResponse.json({
       trades,
       date: date || new Date().toISOString().split('T')[0],
       totalTrades: trades.length,
-      openTrades: trades.filter((t: any) => t.status === 'OPEN').length,
-      closedTrades: trades.filter((t: any) => t.status === 'CLOSED').length
+      openTrades: trades.filter((t: TradeItem) => t.status === 'OPEN').length,
+      closedTrades: trades.filter((t: TradeItem) => t.status === 'CLOSED').length
     });
     
   } catch (error) {
