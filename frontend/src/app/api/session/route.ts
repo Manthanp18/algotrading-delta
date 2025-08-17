@@ -17,6 +17,26 @@ export async function GET() {
     
     return NextResponse.json({
       ...data,
+      strategy: 'SuperTrend Renko System', // Override backend strategy name
+      marketRegime: 'TRENDING',
+      activeStrategy: 'PRIMARY',
+      strategies: {
+        primary: {
+          name: 'SuperTrend Renko Confluence Strategy',
+          signals: 0,
+          confluence: '0.00',
+          superTrendSignals: 0,
+          macdConfirmations: 0,
+          volumeSurges: 0
+        },
+        secondary: {
+          name: 'Bollinger Stochastic Renko Strategy',
+          signals: 0,
+          bollingerBounces: 0,
+          stochasticCrossovers: 0,
+          emaTrendFilters: 0
+        }
+      },
       uptime,
       unrealizedPnL,
       realizedPnL: data.metrics.totalPnl,

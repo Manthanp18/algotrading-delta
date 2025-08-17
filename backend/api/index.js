@@ -21,13 +21,40 @@ app.get('/health', (req, res) => {
 // Get current session data
 app.get('/api/session', (req, res) => {
   try {
-    const sessionFile = path.join('/tmp', 'current_session.json');
+    // Try multiple possible locations for session data
+    const possiblePaths = [
+      path.join('/tmp', 'current_session.json'),
+      path.join(__dirname, '..', 'dashboard', 'trades', 'current_session.json'),
+      path.join(process.cwd(), 'dashboard', 'trades', 'current_session.json')
+    ];
     
-    if (!fs.existsSync(sessionFile)) {
-      // Return mock data if no session exists
-      return res.json({
+    let sessionData = null;
+    let sessionFile = null;
+    
+    // Find the session file
+    for (const filePath of possiblePaths) {
+      if (fs.existsSync(filePath)) {
+        sessionFile = filePath;
+        break;
+      }
+    }
+    
+    if (sessionFile) {
+      sessionData = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+      
+      // Ensure strategy name is correct if it's still using old name
+      if (sessionData.strategy === 'Confluence Scalping' || sessionData.strategy === 'Elite BTC Scalping') {
+        sessionData.strategy = 'SuperTrend Renko System';
+      }
+      
+      res.json(sessionData);
+    } else {
+      // Return minimal live data structure if no session file exists
+      res.json({
         symbol: 'BTCUSD',
-        strategy: 'Confluence Scalping',
+        strategy: 'SuperTrend Renko System',
+        marketRegime: 'TRENDING',
+        activeStrategy: 'PRIMARY',
         initialCapital: 100000,
         startTime: new Date().toISOString(),
         portfolio: {
@@ -50,9 +77,6 @@ app.get('/api/session', (req, res) => {
         lastUpdate: new Date().toISOString()
       });
     }
-    
-    const sessionData = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
-    res.json(sessionData);
   } catch (error) {
     console.error('Session API error:', error);
     res.status(500).json({ error: 'Failed to fetch session data' });
@@ -63,10 +87,26 @@ app.get('/api/session', (req, res) => {
 app.get('/api/trades', (req, res) => {
   try {
     const date = req.query.date || new Date().toISOString().split('T')[0];
-    const tradesFile = path.join('/tmp', `trades_${date}.json`);
+    
+    // Try multiple possible locations for trades data
+    const possiblePaths = [
+      path.join('/tmp', `trades_${date}.json`),
+      path.join(__dirname, '..', 'dashboard', 'trades', `trades_${date}.json`),
+      path.join(process.cwd(), 'dashboard', 'trades', `trades_${date}.json`)
+    ];
     
     let trades = [];
-    if (fs.existsSync(tradesFile)) {
+    let tradesFile = null;
+    
+    // Find the trades file
+    for (const filePath of possiblePaths) {
+      if (fs.existsSync(filePath)) {
+        tradesFile = filePath;
+        break;
+      }
+    }
+    
+    if (tradesFile) {
       trades = JSON.parse(fs.readFileSync(tradesFile, 'utf8'));
     }
     
@@ -87,10 +127,26 @@ app.get('/api/trades', (req, res) => {
 app.get('/api/analytics', (req, res) => {
   try {
     const date = req.query.date || new Date().toISOString().split('T')[0];
-    const tradesFile = path.join('/tmp', `trades_${date}.json`);
+    
+    // Try multiple possible locations for trades data
+    const possiblePaths = [
+      path.join('/tmp', `trades_${date}.json`),
+      path.join(__dirname, '..', 'dashboard', 'trades', `trades_${date}.json`),
+      path.join(process.cwd(), 'dashboard', 'trades', `trades_${date}.json`)
+    ];
     
     let trades = [];
-    if (fs.existsSync(tradesFile)) {
+    let tradesFile = null;
+    
+    // Find the trades file
+    for (const filePath of possiblePaths) {
+      if (fs.existsSync(filePath)) {
+        tradesFile = filePath;
+        break;
+      }
+    }
+    
+    if (tradesFile) {
       trades = JSON.parse(fs.readFileSync(tradesFile, 'utf8'));
     }
     
@@ -102,21 +158,24 @@ app.get('/api/analytics', (req, res) => {
     const winRate = closedTrades.length > 0 ? (winningTrades.length / closedTrades.length) * 100 : 0;
     
     res.json({
-      metrics: {
-        totalTrades: closedTrades.length,
-        winningTrades: winningTrades.length,
-        losingTrades: losingTrades.length,
-        winRate,
-        totalPnL,
-        avgWin: winningTrades.length > 0 ? winningTrades.reduce((sum, t) => sum + t.pnl, 0) / winningTrades.length : 0,
-        avgLoss: losingTrades.length > 0 ? losingTrades.reduce((sum, t) => sum + t.pnl, 0) / losingTrades.length : 0,
-        profitFactor: Math.abs(winningTrades.reduce((sum, t) => sum + t.pnl, 0) / (losingTrades.reduce((sum, t) => sum + t.pnl, 0) || 1)),
-        maxDrawdown: 0,
-        sharpeRatio: 0
-      },
-      trades: closedTrades.slice(0, 10),
+      totalTrades: closedTrades.length,
+      winningTrades: winningTrades.length,
+      losingTrades: losingTrades.length,
+      winRate,
+      totalPnL,
+      averagePnL: closedTrades.length > 0 ? totalPnL / closedTrades.length : 0,
+      averageWin: winningTrades.length > 0 ? winningTrades.reduce((sum, t) => sum + t.pnl, 0) / winningTrades.length : 0,
+      averageLoss: losingTrades.length > 0 ? losingTrades.reduce((sum, t) => sum + t.pnl, 0) / losingTrades.length : 0,
+      profitFactor: Math.abs(winningTrades.reduce((sum, t) => sum + t.pnl, 0) / (losingTrades.reduce((sum, t) => sum + t.pnl, 0) || 1)),
+      maxWin: closedTrades.length > 0 ? Math.max(...closedTrades.map(t => t.pnl || 0)) : 0,
+      maxLoss: closedTrades.length > 0 ? Math.min(...closedTrades.map(t => t.pnl || 0)) : 0,
+      averageHoldingPeriod: 0,
+      longTrades: 0,
+      shortTrades: 0,
+      longWinRate: 0,
+      shortWinRate: 0,
       hourlyBreakdown: [],
-      cumulativePnL: []
+      pnlChartData: []
     });
   } catch (error) {
     console.error('Analytics API error:', error);
