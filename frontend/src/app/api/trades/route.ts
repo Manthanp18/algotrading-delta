@@ -29,9 +29,10 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching trades:', error);
     
     // Return demo data for production deployment
+    const currentDate = new Date().toISOString().split('T')[0];
     return NextResponse.json({
       trades: [],
-      date: date || new Date().toISOString().split('T')[0],
+      date: date || currentDate,
       totalTrades: 0,
       openTrades: 0,
       closedTrades: 0
