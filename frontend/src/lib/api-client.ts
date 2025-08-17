@@ -3,7 +3,7 @@
  * Uses environment variables for API URLs
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? '' : 'http://localhost:8080');
 
 export async function fetchFromBackend(endpoint: string, options?: RequestInit) {
   const url = `${API_URL}${endpoint}`;
