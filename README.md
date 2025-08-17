@@ -1,52 +1,49 @@
-# 🚀 Enterprise Trading System
+# AlgoMCP Trading System
 
-A comprehensive, enterprise-grade cryptocurrency trading system with backtesting, live trading, and advanced analytics capabilities.
+Professional cryptocurrency trading system with SuperTrend Renko strategies and Next.js dashboard.
 
-## ✨ Features
+## 🏗️ Clean Architecture
 
-### 🔥 Core Trading Engine
-- **Backtesting Engine**: Historical strategy testing with detailed metrics
-- **Live Trading Engine**: Real-time strategy execution with risk management
-- **Portfolio Management**: Advanced position tracking and P&L calculation
-- **Risk Management**: Comprehensive risk controls and emergency stops
-
-### 📊 Advanced Analytics
-- **Performance Metrics**: Win rate, Sharpe ratio, max drawdown, profit factor
-- **Interactive Charts**: Candlestick charts, P&L curves, performance heatmaps
-- **Real-time Monitoring**: Live position tracking and trade execution
-- **Historical Analysis**: Detailed trade history and strategy performance
-
-### 🎯 Strategy Framework
-- **Base Strategy Class**: Extensible framework for custom strategies
-- **Technical Indicators**: 20+ built-in indicators (SMA, EMA, RSI, MACD, etc.)
-- **Signal Generation**: Advanced signal processing and validation
-- **Strategy Optimization**: Parameter tuning and backtesting
-
-### 🖥️ Professional Dashboard
-- **Next.js Frontend**: Modern React-based interface
-- **Real-time Updates**: WebSocket-powered live data
-- **Responsive Design**: Mobile-friendly and adaptive UI
-- **Dark Theme**: Optimized for trading environments
-
-## 🏗️ Architecture
-
-### Enterprise-Grade Structure
 ```
 AlgoMCP/
-├── backend/           # Node.js/TypeScript Trading Engine
-├── frontend/          # Next.js/React Dashboard  
-├── shared/            # Shared utilities and types
-├── docs/              # Documentation
-├── scripts/           # Build and deployment scripts
-└── docker/            # Container configurations
+├── backend/                    # Trading engine & API server
+│   ├── legacy-src/            # Core trading logic
+│   │   ├── strategies/        # Trading strategies
+│   │   └── engines/          # Renko & trading engines
+│   ├── dashboard/            # API server only
+│   │   ├── server.js         # Pure API endpoints
+│   │   └── trades/           # Trade data storage
+│   └── package.json          # Backend dependencies
+│
+├── frontend/                  # Next.js dashboard
+│   ├── src/                  # Frontend source code
+│   │   ├── app/api/          # API route handlers
+│   │   ├── components/       # React components
+│   │   └── lib/              # API client & utilities
+│   └── package.json          # Frontend dependencies
+│
+├── start-backend.sh          # Start trading system
+├── start-frontend.sh         # Start dashboard
+└── start-all.sh             # Start everything
 ```
 
-### Technology Stack
-- **Backend**: Node.js, TypeScript, Express, WebSocket
-- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
-- **Data**: Delta Exchange API, Redis caching
-- **Testing**: Jest, React Testing Library
-- **Deployment**: Docker, Docker Compose
+## 🚀 Trading Strategy
+
+**SuperTrend Renko Confluence Strategy:**
+- Primary: SuperTrend Renko (trending markets)
+- Secondary: Bollinger Stochastic Renko (ranging markets)  
+- Market regime detection for automatic strategy selection
+- Professional risk management (2% risk, 3:1 R/R)
+- 7/10 minimum confluence score for high-quality signals
+
+## 📊 Dashboard Features
+
+- **Live Positions**: Real-time portfolio tracking with SuperTrend metrics
+- **Trade History**: Complete trading history with filtering
+- **Analytics**: Performance metrics and charts
+- **Market Regime**: TRENDING/RANGING detection with visual indicators
+- **Strategy Metrics**: Confluence scores, SuperTrend signals, MACD confirmations
+- **Auto-refresh**: Real-time data updates every 30 seconds
 
 ## 🚀 Quick Start
 

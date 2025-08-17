@@ -3,7 +3,7 @@ const fs = require('fs-extra');
 const path = require('path');
 
 class DashboardServer {
-  constructor(port = 3000) {
+  constructor(port = 8080) {
     this.port = port;
     this.app = express();
     this.server = null;
@@ -15,32 +15,54 @@ class DashboardServer {
   }
   
   setupRoutes() {
-    this.app.use(express.static(__dirname));
+    // Enable CORS for frontend
+    this.app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+      next();
+    });
     
-    this.app.get('/api/dashboard', async (req, res) => {
+    // Pure API endpoints only
+    this.app.get('/api/session', async (req, res) => {
       try {
-        res.json(await this.getDashboardData());
+        const data = await this.getDashboardData();
+        res.json(data);
       } catch (error) {
-        console.error('Dashboard API error:', error.message);
-        res.status(500).json({ error: 'Failed to fetch dashboard data' });
+        console.error('Session API error:', error.message);
+        res.status(500).json({ error: 'Failed to fetch session data' });
       }
     });
     
     this.app.get('/api/trades', async (req, res) => {
       try {
-        res.json(await this.getRecentTrades());
+        const date = req.query.date;
+        res.json(await this.getRecentTrades(date ? 50 : 20));
       } catch (error) {
         console.error('Trades API error:', error.message);
         res.status(500).json({ error: 'Failed to fetch trades' });
       }
     });
     
-    this.app.get('/api/health', (req, res) => {
-      res.json({ status: 'healthy', timestamp: new Date().toISOString(), uptime: process.uptime() });
+    this.app.get('/api/analytics', async (req, res) => {
+      try {
+        const data = await this.getDashboardData();
+        const analytics = {
+          dailyPnL: data.metrics.totalPnL,
+          winRate: data.metrics.winRate,
+          totalTrades: data.metrics.totalTrades,
+          maxDrawdown: data.metrics.maxDrawdown,
+          equity: data.portfolio.equity,
+          returnPercent: data.portfolio.totalReturn
+        };
+        res.json(analytics);
+      } catch (error) {
+        console.error('Analytics API error:', error.message);
+        res.status(500).json({ error: 'Failed to fetch analytics' });
+      }
     });
     
-    this.app.get('/', (req, res) => {
-      res.sendFile(path.join(__dirname, 'index.html'));
+    this.app.get('/health', (req, res) => {
+      res.json({ status: 'healthy', timestamp: new Date().toISOString(), uptime: process.uptime() });
     });
   }
   

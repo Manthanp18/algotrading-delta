@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendAPI } from '@/lib/api-client';
 
-// For local development with file system
-import fs from 'fs';
-import path from 'path';
-
 interface Trade {
   id?: string;
   symbol: string;
@@ -29,34 +25,20 @@ interface Trade {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
+    const date = searchParams.get('date');
     
-    // In production, use the backend API
-    if (process.env.NODE_ENV === 'production') {
-      const data = await backendAPI.getTrades(date);
-      return NextResponse.json(data);
-    }
-    
-    // In development, read from local file system
-    const tradesDir = path.join(process.cwd(), '..', 'backend', 'dashboard', 'trades');
-    const tradesFile = path.join(tradesDir, `trades_${date}.json`);
-    
-    let trades: Trade[] = [];
-    
-    if (fs.existsSync(tradesFile)) {
-      const tradesData = fs.readFileSync(tradesFile, 'utf8');
-      trades = JSON.parse(tradesData);
-    }
+    // Always use the backend API
+    const trades = await backendAPI.getTrades(date || undefined);
     
     // Sort trades by timestamp descending (most recent first)
-    trades.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    trades.sort((a: Trade, b: Trade) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
     return NextResponse.json({
       trades,
-      date,
+      date: date || new Date().toISOString().split('T')[0],
       totalTrades: trades.length,
-      openTrades: trades.filter(t => t.status === 'OPEN').length,
-      closedTrades: trades.filter(t => t.status === 'CLOSED').length
+      openTrades: trades.filter((t: Trade) => t.status === 'OPEN').length,
+      closedTrades: trades.filter((t: Trade) => t.status === 'CLOSED').length
     });
     
   } catch (error) {

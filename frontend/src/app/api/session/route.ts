@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import { backendAPI } from '@/lib/api-client';
 
-// For local development
-import fs from 'fs';
-import path from 'path';
-
 interface Portfolio {
   cash: number;
   equity: number;
@@ -39,37 +35,24 @@ interface SessionData {
 
 export async function GET() {
   try {
-    // In production, use the backend API
-    if (process.env.NODE_ENV === 'production') {
-      const data = await backendAPI.getSession();
-      return NextResponse.json(data);
-    }
-    
-    // In development, read from local file system
-    const sessionFile = path.join(process.cwd(), '..', 'backend', 'dashboard', 'trades', 'current_session.json');
-    
-    if (!fs.existsSync(sessionFile)) {
-      return NextResponse.json({ error: 'No active session found' }, { status: 404 });
-    }
-    
-    const sessionData = fs.readFileSync(sessionFile, 'utf8');
-    const session: SessionData = JSON.parse(sessionData);
+    // Always use the backend API (both dev and production)
+    const data = await backendAPI.getSession();
     
     // Calculate additional metrics
-    const uptime = new Date().getTime() - new Date(session.startTime).getTime();
-    const unrealizedPnL = session.portfolio.positions.reduce((total, pos) => {
+    const uptime = new Date().getTime() - new Date(data.startTime).getTime();
+    const unrealizedPnL = data.portfolio.positions.reduce((total: number, pos: any) => {
       if (pos.quantity > 0) {
-        return total + ((session.lastPrice - pos.avgPrice) * pos.quantity);
+        return total + ((data.lastPrice - pos.avgPrice) * pos.quantity);
       }
       return total;
     }, 0);
     
     return NextResponse.json({
-      ...session,
+      ...data,
       uptime,
       unrealizedPnL,
-      realizedPnL: session.metrics.totalPnl,
-      totalPnL: session.metrics.totalPnl + unrealizedPnL
+      realizedPnL: data.metrics.totalPnl,
+      totalPnL: data.metrics.totalPnl + unrealizedPnL
     });
     
   } catch (error) {
