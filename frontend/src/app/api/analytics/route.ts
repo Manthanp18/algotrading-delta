@@ -1,25 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendAPI } from '@/lib/api-client';
 
-interface Trade {
-  id?: string;
-  symbol: string;
-  type: string;
-  signal_type: string;
-  quantity: number;
-  entryPrice: number;
-  entryTime: string;
-  reason: string;
-  status: string;
-  exitPrice?: number;
-  exitTime?: string;
-  pnl?: number;
-  pnlPercent?: number;
-  holdingPeriod?: number;
-  exitReason?: string;
-  timestamp: string;
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

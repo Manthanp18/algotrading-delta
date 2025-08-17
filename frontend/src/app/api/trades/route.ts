@@ -31,14 +31,14 @@ export async function GET(request: NextRequest) {
     const trades = await backendAPI.getTrades(date || undefined);
     
     // Sort trades by timestamp descending (most recent first)
-    trades.sort((a: Trade, b: Trade) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    trades.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
     return NextResponse.json({
       trades,
       date: date || new Date().toISOString().split('T')[0],
       totalTrades: trades.length,
-      openTrades: trades.filter((t: Trade) => t.status === 'OPEN').length,
-      closedTrades: trades.filter((t: Trade) => t.status === 'CLOSED').length
+      openTrades: trades.filter((t: any) => t.status === 'OPEN').length,
+      closedTrades: trades.filter((t: any) => t.status === 'CLOSED').length
     });
     
   } catch (error) {

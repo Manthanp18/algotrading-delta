@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Trade, StatusFilter, TypeFilter } from '@/types/trading';
 import { useTrades } from '@/hooks/useTrades';
 import { formatCurrency, formatPercentage, formatDateTime, formatQuantity } from '@/utils/formatters';
-import { DEFAULTS, TRADE_TYPE_LABELS } from '@/utils/constants';
+import { TRADE_TYPE_LABELS } from '@/utils/constants';
 import { Card } from '@/components/ui/Card';
 import { TableLoadingSkeleton } from '@/components/ui/LoadingStates';
 import { ErrorState, NoDataState } from '@/components/ui/ErrorStates';

@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp, TrendingDown, Target, DollarSign } from 'lucide-react';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { formatCurrency, formatPercentage } from '@/utils/formatters';
-import { DEFAULTS, CHART_COLORS } from '@/utils/constants';
+import { CHART_COLORS } from '@/utils/constants';
 import { Card, MetricCard } from '@/components/ui/Card';
 import { MetricLoadingSkeleton, ChartLoadingSkeleton } from '@/components/ui/LoadingStates';
 import { ErrorState, NoDataState } from '@/components/ui/ErrorStates';
