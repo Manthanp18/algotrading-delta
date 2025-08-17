@@ -7,10 +7,10 @@ interface TradeItem {
 }
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const date = searchParams.get('date');
+  
   try {
-    const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date');
-    
     // Always use the backend API
     const trades = await backendAPI.getTrades(date || undefined);
     
