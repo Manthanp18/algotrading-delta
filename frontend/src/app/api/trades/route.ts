@@ -8,18 +8,19 @@ interface TradeItem {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const date = searchParams.get('date');
+  const dateParam = searchParams.get('date');
+  const currentDate = new Date().toISOString().split('T')[0];
   
   try {
     // Always use the backend API
-    const trades = await backendAPI.getTrades(date || undefined);
+    const trades = await backendAPI.getTrades(dateParam || undefined);
     
     // Sort trades by timestamp descending (most recent first)
     trades.sort((a: TradeItem, b: TradeItem) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
     return NextResponse.json({
       trades,
-      date: date || new Date().toISOString().split('T')[0],
+      date: dateParam || currentDate,
       totalTrades: trades.length,
       openTrades: trades.filter((t: TradeItem) => t.status === 'OPEN').length,
       closedTrades: trades.filter((t: TradeItem) => t.status === 'CLOSED').length
@@ -29,10 +30,9 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching trades:', error);
     
     // Return demo data for production deployment
-    const currentDate = new Date().toISOString().split('T')[0];
     return NextResponse.json({
       trades: [],
-      date: date || currentDate,
+      date: dateParam || currentDate,
       totalTrades: 0,
       openTrades: 0,
       closedTrades: 0
