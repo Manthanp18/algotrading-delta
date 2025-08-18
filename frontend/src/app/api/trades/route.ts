@@ -29,13 +29,14 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching trades:', error);
     
-    // Return demo data for production deployment
+    // Return empty response when backend is not available - NO DEMO DATA
     return NextResponse.json({
       trades: [],
       date: dateParam || currentDate,
       totalTrades: 0,
       openTrades: 0,
-      closedTrades: 0
+      closedTrades: 0,
+      error: 'Backend API not available'
     });
   }
 }

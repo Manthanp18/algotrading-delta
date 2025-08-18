@@ -47,40 +47,32 @@ export async function fetchFromBackend(endpoint: string, options?: RequestInit) 
   }
 }
 
-// Provide empty responses during build time
+// Provide minimal empty responses during build time - NO DEMO DATA
 function getEmptyResponse(endpoint: string) {
   if (endpoint.includes('/api/session')) {
     return {
-      symbol: 'BTCUSD',
-      strategy: 'SuperTrend Renko System',
-      portfolio: { equity: 0, cash: 0, positions: [] },
-      metrics: { totalTrades: 0, winRate: 0, totalPnl: 0 },
-      lastPrice: 0,
-      uptime: 0
+      error: 'Backend API not available',
+      symbol: null,
+      strategy: null,
+      portfolio: null,
+      metrics: null
     };
   }
   
   if (endpoint.includes('/api/trades')) {
-    return [];
+    return {
+      error: 'Backend API not available',
+      trades: [],
+      totalTrades: 0
+    };
   }
   
   if (endpoint.includes('/api/analytics')) {
     return {
+      error: 'Backend API not available',
       totalTrades: 0,
       winRate: 0,
       totalPnL: 0,
-      winningTrades: 0,
-      losingTrades: 0,
-      profitFactor: 0,
-      averageHoldingPeriod: 0,
-      averageWin: 0,
-      averageLoss: 0,
-      longWinRate: 0,
-      shortWinRate: 0,
-      longTrades: 0,
-      shortTrades: 0,
-      maxWin: 0,
-      maxLoss: 0,
       pnlChartData: [],
       hourlyBreakdown: []
     };
@@ -88,6 +80,7 @@ function getEmptyResponse(endpoint: string) {
   
   if (endpoint.includes('/api/logs')) {
     return {
+      error: 'Backend API not available',
       logs: [],
       totalLogs: 0,
       logLevel: 'all',
@@ -95,7 +88,7 @@ function getEmptyResponse(endpoint: string) {
     };
   }
   
-  return {};
+  return { error: 'Backend API not available' };
 }
 
 export const backendAPI = {

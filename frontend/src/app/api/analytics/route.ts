@@ -13,8 +13,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching analytics:', error);
     
-    // Return demo analytics data for production deployment
+    // Return empty response when backend is not available - NO DEMO DATA
     return NextResponse.json({
+      error: 'Backend API not available',
       totalTrades: 0,
       winningTrades: 0,
       losingTrades: 0,

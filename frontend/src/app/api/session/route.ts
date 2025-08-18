@@ -46,52 +46,13 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching session data:', error);
     
-    // Return demo data for production deployment
+    // Return empty response when backend is not available - NO DEMO DATA
     return NextResponse.json({
-      symbol: 'BTCUSD',
-      strategy: 'SuperTrend Renko System',
-      marketRegime: 'TRENDING',
-      activeStrategy: 'PRIMARY',
-      initialCapital: 100000,
-      startTime: new Date().toISOString(),
-      portfolio: {
-        cash: 100000,
-        equity: 100000,
-        positions: [],
-        totalReturn: 0
-      },
-      metrics: {
-        totalTrades: 0,
-        winningTrades: 0,
-        losingTrades: 0,
-        totalPnl: 0,
-        maxDrawdown: 0,
-        winRate: 0,
-        lastUpdate: new Date().toISOString()
-      },
-      strategies: {
-        primary: {
-          name: 'SuperTrend Renko Confluence Strategy',
-          signals: 0,
-          confluence: '0.00',
-          superTrendSignals: 0,
-          macdConfirmations: 0,
-          volumeSurges: 0
-        },
-        secondary: {
-          name: 'Bollinger Stochastic Renko Strategy',
-          signals: 0,
-          bollingerBounces: 0,
-          stochasticCrossovers: 0,
-          emaTrendFilters: 0
-        }
-      },
-      lastPrice: 117000,
-      uptime: 0,
-      unrealizedPnL: 0,
-      realizedPnL: 0,
-      totalPnL: 0,
-      openPositions: 0,
+      error: 'Backend API not available',
+      symbol: null,
+      strategy: null,
+      portfolio: null,
+      metrics: null,
       lastUpdate: new Date().toISOString()
     });
   }
