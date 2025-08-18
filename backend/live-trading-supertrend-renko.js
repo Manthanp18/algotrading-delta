@@ -27,7 +27,7 @@ logger.info('PROFESSIONAL SUPERTREND RENKO TRADING SYSTEM STARTED', { timestamp:
 
 // Initialize DUAL strategy system (Primary + Secondary)
 const primaryStrategy = new SuperTrendRenkoStrategy({
-  atrMultiplier: 0.5,               // Professional brick sizing
+  atrMultiplier: 0.326,             // Target brick size: $75
   supertrendPeriod: 10,
   supertrendMultiplier: 3.0,
   macdFast: 12,
@@ -40,7 +40,7 @@ const primaryStrategy = new SuperTrendRenkoStrategy({
 });
 
 const secondaryStrategy = new BollingerStochasticRenkoStrategy({
-  atrMultiplier: 0.4,               // Smaller bricks for ranging
+  atrMultiplier: 0.217,             // Target brick size: $50
   bollingerPeriod: 20,
   bollingerStdDev: 2.0,
   stochasticK: 14,
