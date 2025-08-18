@@ -18,9 +18,12 @@ const { Portfolio } = require('./legacy-src/backtestEngine');
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
+const logger = require('./src/logger');
+const { startLogsServer } = require('./src/logsServer');
 
 console.log('🚀 PROFESSIONAL SUPERTREND RENKO TRADING SYSTEM');
 console.log('=' .repeat(80));
+logger.info('PROFESSIONAL SUPERTREND RENKO TRADING SYSTEM STARTED', { timestamp: new Date().toISOString() });
 
 // Initialize DUAL strategy system (Primary + Secondary)
 const primaryStrategy = new SuperTrendRenkoStrategy({
@@ -55,6 +58,12 @@ console.log(`📊 SECONDARY: ${secondaryStrategy.name}`);
 console.log(`⚡ Dual-strategy confluence system enabled`);
 console.log('');
 
+logger.info('System initialized', {
+  initialCapital: portfolio.initialCapital,
+  primaryStrategy: primaryStrategy.name,
+  secondaryStrategy: secondaryStrategy.name
+});
+
 // Core data
 let updateCount = 0;
 let signalCount = 0;
@@ -69,8 +78,14 @@ let sessionHighEquity = 100000;
 let sessionLowEquity = 100000;
 let dailyPnL = 0;
 let activeStrategy = 'PRIMARY';
+let candleCount = 0;
+let lastCandleData = null;
+let currentCandle = null;
+let candleStartTime = null;
+let priceUpdateCount = 0;
 
 const startTime = Date.now();
+const CANDLE_INTERVAL_MS = 60000; // 1 minute in milliseconds
 
 // Trade storage setup
 const tradesDir = path.join(__dirname, 'dashboard', 'trades');
@@ -81,15 +96,30 @@ if (!fs.existsSync(tradesDir)) {
 // Enhanced event monitoring for both strategies
 function setupStrategyMonitoring(strategy, strategyName) {
   strategy.getRenkoEngine().on('newBrick', (brick) => {
-    console.log(`🧱 ${strategyName} Brick #${brick.brickNumber}: ${brick.direction} | $${brick.open.toFixed(2)} -> $${brick.close.toFixed(2)} | Consecutive: ${brick.consecutiveCount}`);
+    logger.info(`${strategyName} Brick formed`, {
+      brickNumber: brick.brickNumber,
+      direction: brick.direction,
+      open: brick.open,
+      close: brick.close,
+      consecutive: brick.consecutiveCount,
+      activeStrategy: activeStrategy
+    });
   });
 
   strategy.getRenkoEngine().on('trendChange', (data) => {
-    console.log(`🔄 ${strategyName} Trend Change: ${data.oldDirection} -> ${data.newDirection}`);
+    logger.warn(`${strategyName} Trend Change`, {
+      oldDirection: data.oldDirection,
+      newDirection: data.newDirection,
+      activeStrategy: activeStrategy
+    });
   });
 
   strategy.getRenkoEngine().on('brickSizeCalculated', (data) => {
-    console.log(`📏 ${strategyName} Brick Size: $${data.optimalBrickSize.toFixed(2)} (ATR: ${data.atr.toFixed(2)})`);
+    logger.info(`${strategyName} Brick Size calculated`, {
+      brickSize: data.optimalBrickSize,
+      atr: data.atr,
+      activeStrategy: activeStrategy
+    });
   });
 }
 
@@ -115,58 +145,79 @@ function detectMarketRegime() {
 
 // Advanced signal processing with strategy selection
 function processSignal(primarySignal, secondarySignal, marketRegime) {
+  let selectedSignal = null;
+  let selectionReason = '';
+  
   // In trending markets, prefer SuperTrend strategy
   if (marketRegime === 'TRENDING') {
     if (primarySignal && primarySignal.confluence && primarySignal.confluence.score >= 8) {
       activeStrategy = 'PRIMARY';
-      return primarySignal;
+      selectedSignal = primarySignal;
+      selectionReason = `Trending market - SuperTrend selected (confluence: ${primarySignal.confluence.score}/10)`;
     }
     // Fallback to secondary if primary has low confidence
-    if (secondarySignal && !primarySignal) {
+    else if (secondarySignal && !primarySignal) {
       activeStrategy = 'SECONDARY';
-      return secondarySignal;
+      selectedSignal = secondarySignal;
+      selectionReason = 'Trending market - Bollinger fallback (no primary signal)';
     }
   }
   
   // In ranging markets, prefer Bollinger strategy
-  if (marketRegime === 'RANGING') {
+  else if (marketRegime === 'RANGING') {
     if (secondarySignal && secondarySignal.confidence >= 0.7) {
       activeStrategy = 'SECONDARY';
-      return secondarySignal;
+      selectedSignal = secondarySignal;
+      selectionReason = `Ranging market - Bollinger selected (confidence: ${(secondarySignal.confidence * 100).toFixed(1)}%)`;
     }
     // Fallback to primary if secondary has no signal
-    if (primarySignal && !secondarySignal) {
+    else if (primarySignal && !secondarySignal) {
       activeStrategy = 'PRIMARY';
-      return primarySignal;
+      selectedSignal = primarySignal;
+      selectionReason = 'Ranging market - SuperTrend fallback (no secondary signal)';
     }
   }
   
   // Default to highest confidence signal
-  if (primarySignal && secondarySignal) {
+  if (!selectedSignal && primarySignal && secondarySignal) {
     const primaryConf = primarySignal.confidence || 0;
     const secondaryConf = secondarySignal.confidence || 0;
     
     if (primaryConf > secondaryConf) {
       activeStrategy = 'PRIMARY';
-      return primarySignal;
+      selectedSignal = primarySignal;
+      selectionReason = `Higher confidence - SuperTrend (${(primaryConf * 100).toFixed(1)}% vs ${(secondaryConf * 100).toFixed(1)}%)`;
     } else {
       activeStrategy = 'SECONDARY';
-      return secondarySignal;
+      selectedSignal = secondarySignal;
+      selectionReason = `Higher confidence - Bollinger (${(secondaryConf * 100).toFixed(1)}% vs ${(primaryConf * 100).toFixed(1)}%)`;
     }
   }
   
   // Return whichever signal exists
-  if (primarySignal) {
-    activeStrategy = 'PRIMARY';
-    return primarySignal;
+  else if (!selectedSignal) {
+    if (primarySignal) {
+      activeStrategy = 'PRIMARY';
+      selectedSignal = primarySignal;
+      selectionReason = 'Only SuperTrend signal available';
+    } else if (secondarySignal) {
+      activeStrategy = 'SECONDARY';
+      selectedSignal = secondarySignal;
+      selectionReason = 'Only Bollinger signal available';
+    }
   }
   
-  if (secondarySignal) {
-    activeStrategy = 'SECONDARY';
-    return secondarySignal;
+  // Log strategy selection reasoning
+  if (selectedSignal && selectionReason) {
+    logger.info('Strategy Selection', {
+      selected: activeStrategy,
+      reason: selectionReason,
+      marketRegime: marketRegime,
+      candle: candleCount
+    });
   }
   
-  return null;
+  return selectedSignal;
 }
 
 // Save trade to file
@@ -260,32 +311,49 @@ const performanceTracker = setInterval(() => {
   
   const marketRegime = detectMarketRegime();
   
-  console.log(`\n📊 PROFESSIONAL RENKO TRADING (${hours}h ${minutes}m):`);
-  console.log(`⚡ Updates: ${updateCount} (${rate}/sec) | Signals: ${signalCount} | Trades: ${tradeCount}`);
-  console.log(`💰 Equity: $${portfolio.equity.toLocaleString()} | Daily P&L: $${dailyPnL.toFixed(2)}`);
-  console.log(`📈 Session High: $${sessionHighEquity.toLocaleString()} | Low: $${sessionLowEquity.toLocaleString()}`);
-  console.log(`🔗 Connection: ${getConnectionStatus()} | Last Update: ${timeSinceLastUpdate}s ago`);
-  console.log(`🎯 Market Regime: ${marketRegime} | Active Strategy: ${activeStrategy}`);
+  logger.info('========== TRADING STATUS UPDATE ==========', {
+    runtime: `${hours}h ${minutes}m`,
+    candle: candleCount,
+    updates: updateCount,
+    updateRate: rate,
+    signals: signalCount,
+    trades: tradeCount,
+    equity: portfolio.equity,
+    dailyPnL: dailyPnL,
+    marketRegime,
+    activeStrategy,
+    connectionStatus: getConnectionStatus()
+  });
   
   // Primary strategy status
   const primaryStats = primaryStrategy.getStatistics();
   const primaryRenko = primaryStats.renkoEngine;
   const primaryConsecutive = primaryStrategy.getRenkoEngine().getConsecutiveBricks();
   
-  console.log(`🧱 SUPERTREND RENKO:`);
-  console.log(`   Bricks: ${primaryRenko.totalBricks} | Size: $${primaryRenko.brickSize?.toFixed(2) || 'Calc...'}`);
-  console.log(`   Trend: ${primaryConsecutive.count} ${primaryConsecutive.direction || 'INIT'} | Strength: ${(primaryRenko.trendStrength * 100).toFixed(1)}%`);
-  console.log(`   Signals: ${primaryStats.entrySignals} | Avg Confluence: ${primaryStats.avgConfluenceScore}`);
+  logger.info('SUPERTREND RENKO STATUS', {
+    bricks: primaryRenko.totalBricks,
+    brickSize: primaryRenko.brickSize || 0,
+    trend: `${primaryConsecutive.count} ${primaryConsecutive.direction || 'INIT'}`,
+    trendStrength: (primaryRenko.trendStrength * 100).toFixed(1),
+    signals: primaryStats.entrySignals,
+    avgConfluence: primaryStats.avgConfluenceScore,
+    activeStrategy: activeStrategy === 'PRIMARY' ? 'ACTIVE' : 'STANDBY'
+  });
   
   // Secondary strategy status
   const secondaryStats = secondaryStrategy.getStatistics();
   const secondaryRenko = secondaryStats.renkoEngine;
   const secondaryConsecutive = secondaryStrategy.getRenkoEngine().getConsecutiveBricks();
   
-  console.log(`🎯 BOLLINGER RENKO:`);
-  console.log(`   Bricks: ${secondaryRenko.totalBricks} | Size: $${secondaryRenko.brickSize?.toFixed(2) || 'Calc...'}`);
-  console.log(`   Trend: ${secondaryConsecutive.count} ${secondaryConsecutive.direction || 'INIT'} | Strength: ${(secondaryRenko.trendStrength * 100).toFixed(1)}%`);
-  console.log(`   Signals: ${secondaryStats.entrySignals} | BB Bounces: ${secondaryStats.bollingerBounces}`);
+  logger.info('BOLLINGER RENKO STATUS', {
+    bricks: secondaryRenko.totalBricks,
+    brickSize: secondaryRenko.brickSize || 0,
+    trend: `${secondaryConsecutive.count} ${secondaryConsecutive.direction || 'INIT'}`,
+    trendStrength: (secondaryRenko.trendStrength * 100).toFixed(1),
+    signals: secondaryStats.entrySignals,
+    bbBounces: secondaryStats.bollingerBounces,
+    activeStrategy: activeStrategy === 'SECONDARY' ? 'ACTIVE' : 'STANDBY'
+  });
   
   // Position status
   const btcPosition = portfolio.positions.get('BTCUSD');
@@ -294,10 +362,20 @@ const performanceTracker = setInterval(() => {
     const pnl = currentValue - (btcPosition.quantity * btcPosition.averagePrice);
     const pnlPercent = (pnl / (btcPosition.quantity * btcPosition.averagePrice)) * 100;
     
-    console.log(`📈 Position: ${btcPosition.quantity.toFixed(6)} BTC @ $${btcPosition.averagePrice.toFixed(2)}`);
-    console.log(`💵 Value: $${currentValue.toFixed(2)} | P&L: $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)`);
+    logger.info('POSITION STATUS', {
+      quantity: btcPosition.quantity,
+      avgPrice: btcPosition.averagePrice,
+      currentValue: currentValue,
+      pnl: pnl,
+      pnlPercent: pnlPercent,
+      candle: candleCount
+    });
   } else {
-    console.log(`📊 Position: None (Cash only)`);
+    logger.info('POSITION STATUS', {
+      status: 'NO POSITION',
+      cash: portfolio.cash,
+      candle: candleCount
+    });
   }
   
   // Auto-reconnect if needed
@@ -319,7 +397,10 @@ function getConnectionStatus() {
 
 function executeTradeSignal(signal, candle) {
   tradeCount++;
-  console.log(`\n💰 EXECUTING ${activeStrategy} TRADE #${tradeCount}:`);
+  logger.trade(`EXECUTING TRADE #${tradeCount}`, {
+    strategy: activeStrategy,
+    candle: candleCount
+  });
   
   try {
     if (signal.action === 'BUY') {
@@ -453,6 +534,7 @@ function connectWebSocket() {
       
       if (message.type === 'subscriptions') {
         console.log('🚀 PROFESSIONAL RENKO TRADING ACTIVE!\n');
+        logger.success('Professional Renko Trading Active', { subscriptions: message.subscriptions });
         return;
       }
       
@@ -463,9 +545,16 @@ function connectWebSocket() {
         currentPrice = parseFloat(message.close || message.mark_price);
         volume = parseFloat(message.volume || 1000);
         
-        // Log mark price
+        // Log price tick (not candle)
         if (message.mark_price) {
-          console.log(`📍 Mark Price: $${parseFloat(message.mark_price).toFixed(2)} | Time: ${new Date().toISOString().substring(11, 19)}`);
+          const price = parseFloat(message.mark_price);
+          priceUpdateCount++;
+          logger.market('Price Tick', { 
+            price: price,
+            tick: priceUpdateCount,
+            currentCandle: candleCount,
+            activeStrategy: activeStrategy
+          });
         }
       }
       
@@ -473,45 +562,97 @@ function connectWebSocket() {
         updateCount++;
         lastPrice = currentPrice;
         
-        // Create candle data for both strategies
-        const candle = {
-          timestamp: new Date(),
-          open: currentPrice,
-          high: currentPrice * 1.0001,
-          low: currentPrice * 0.9999,
-          close: currentPrice,
-          volume: volume
-        };
+        // Handle candle aggregation logic
+        const now = Date.now();
         
-        try {
-          // Generate signals from both strategies
-          const primarySignal = primaryStrategy.generateSignal(candle, [], portfolio);
-          const secondarySignal = secondaryStrategy.generateSignal(candle, [], portfolio);
+        // Initialize first candle
+        if (!currentCandle) {
+          candleStartTime = now;
+          currentCandle = {
+            timestamp: new Date(candleStartTime),
+            open: currentPrice,
+            high: currentPrice,
+            low: currentPrice,
+            close: currentPrice,
+            volume: volume
+          };
+          logger.info('First Candle Started', {
+            candle: candleCount + 1,
+            price: currentPrice,
+            activeStrategy: activeStrategy
+          });
+        } else {
+          // Update current candle with new price
+          currentCandle.high = Math.max(currentCandle.high, currentPrice);
+          currentCandle.low = Math.min(currentCandle.low, currentPrice);
+          currentCandle.close = currentPrice;
+          currentCandle.volume += volume;
+        }
+        
+        // Check if 1 minute has passed - complete the candle
+        if (now - candleStartTime >= CANDLE_INTERVAL_MS) {
+          // Complete current candle
+          candleCount++;
+          lastCandleData = { ...currentCandle };
           
-          // Detect market regime and select best signal
-          const marketRegime = detectMarketRegime();
-          const selectedSignal = processSignal(primarySignal, secondarySignal, marketRegime);
+          logger.info('Candle Completed', {
+            candle: candleCount,
+            ohlcv: lastCandleData,
+            activeStrategy: activeStrategy,
+            marketRegime: detectMarketRegime(),
+            duration: `${(now - candleStartTime) / 1000}s`
+          });
           
-          if (selectedSignal) {
-            signalCount++;
+          // Start new candle
+          candleStartTime = now;
+          currentCandle = {
+            timestamp: new Date(candleStartTime),
+            open: currentPrice,
+            high: currentPrice,
+            low: currentPrice,
+            close: currentPrice,
+            volume: volume
+          };
+        }
+        
+        // Only run strategy analysis when a candle is completed
+        if (lastCandleData && (now - candleStartTime < 1000)) { // Just completed a candle
+          try {
+            // Generate signals from both strategies using completed candle
+            const primarySignal = primaryStrategy.generateSignal(lastCandleData, [], portfolio);
+            const secondarySignal = secondaryStrategy.generateSignal(lastCandleData, [], portfolio);
             
-            console.log(`\n🎯 ${activeStrategy} SIGNAL #${signalCount}:`);
-            console.log(`📊 ${selectedSignal.action} at $${currentPrice.toFixed(2)}`);
-            console.log(`💡 ${selectedSignal.reason}`);
-            console.log(`🎯 Confidence: ${((selectedSignal.confidence || 0) * 100).toFixed(1)}%`);
-            console.log(`📈 Market Regime: ${marketRegime}`);
+            // Detect market regime and select best signal
+            const marketRegime = detectMarketRegime();
+            const selectedSignal = processSignal(primarySignal, secondarySignal, marketRegime);
             
-            if (selectedSignal.takeProfit) {
-              console.log(`📈 Take Profit: $${selectedSignal.takeProfit.toFixed(2)}`);
+            if (selectedSignal) {
+              signalCount++;
+              
+              logger.trade(`SIGNAL GENERATED #${signalCount}`, {
+                candle: candleCount,
+                action: selectedSignal.action,
+                price: currentPrice,
+                reason: selectedSignal.reason,
+                confidence: ((selectedSignal.confidence || 0) * 100).toFixed(1),
+                marketRegime,
+                activeStrategy: activeStrategy,
+                primaryAnalyzed: primarySignal ? true : false,
+                secondaryAnalyzed: secondarySignal ? true : false
+              });
+              
+              if (selectedSignal.takeProfit) {
+                console.log(`📈 Take Profit: $${selectedSignal.takeProfit.toFixed(2)}`);
+              }
+              if (selectedSignal.stopLoss) {
+                console.log(`📉 Stop Loss: $${selectedSignal.stopLoss.toFixed(2)}`);
+              }
+              
+              executeTradeSignal(selectedSignal, lastCandleData);
             }
-            if (selectedSignal.stopLoss) {
-              console.log(`📉 Stop Loss: $${selectedSignal.stopLoss.toFixed(2)}`);
-            }
-            
-            executeTradeSignal(selectedSignal, candle);
+          } catch (error) {
+            console.error(`❌ Strategy error: ${error.message}`);
           }
-        } catch (error) {
-          console.error(`❌ Strategy error: ${error.message}`);
         }
         
         // Update portfolio equity
@@ -528,6 +669,7 @@ function connectWebSocket() {
   
   ws.on('close', (code, reason) => {
     console.log(`🔌 WebSocket disconnected: ${code} ${reason}`);
+    logger.warn('WebSocket disconnected', { code, reason });
     if (reconnectAttempts < maxReconnectAttempts) {
       reconnectWebSocket();
     }
@@ -535,6 +677,7 @@ function connectWebSocket() {
   
   ws.on('error', (error) => {
     console.error(`❌ WebSocket error: ${error.message}`);
+    logger.error('WebSocket error', { error: error.message });
     if (reconnectAttempts < maxReconnectAttempts) {
       reconnectWebSocket();
     }
@@ -611,6 +754,12 @@ function cleanup() {
 console.log('🎯 Starting Professional SuperTrend Renko trading system...');
 console.log('💡 Dual-strategy adaptive system with market regime detection');
 console.log('💡 Press Ctrl+C to stop at any time\n');
+
+// Start the logs server
+startLogsServer();
+console.log('📝 Logs server started on port 8080');
+logger.info('Logs server started', { port: 8080 });
+
 connectWebSocket();
 
 // Graceful shutdown

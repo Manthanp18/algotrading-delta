@@ -8,7 +8,7 @@ import { ErrorState } from '@/components/ui/ErrorStates';
 
 interface LogEntry {
   timestamp: string;
-  level: 'info' | 'error' | 'warn' | 'debug';
+  level: 'info' | 'error' | 'warn' | 'debug' | 'trade' | 'market' | 'success';
   message: string;
   data?: Record<string, unknown>;
 }
@@ -25,7 +25,10 @@ const LogLevelBadge = ({ level }: { level: string }) => {
     info: 'bg-blue-600 text-blue-100',
     error: 'bg-red-600 text-red-100', 
     warn: 'bg-yellow-600 text-yellow-100',
-    debug: 'bg-gray-600 text-gray-100'
+    debug: 'bg-gray-600 text-gray-100',
+    trade: 'bg-green-600 text-green-100',
+    market: 'bg-purple-600 text-purple-100',
+    success: 'bg-emerald-600 text-emerald-100'
   };
   
   return (
@@ -35,52 +38,87 @@ const LogLevelBadge = ({ level }: { level: string }) => {
   );
 };
 
+const formatTradingData = (data: Record<string, unknown>) => {
+  const formatted: string[] = [];
+  
+  if (data.price) formatted.push(`$${Number(data.price).toFixed(2)}`);
+  if (data.candle) formatted.push(`Candle #${data.candle}`);
+  if (data.activeStrategy) formatted.push(`Strategy: ${data.activeStrategy}`);
+  if (data.marketRegime) formatted.push(`Regime: ${data.marketRegime}`);
+  if (data.ohlcv) {
+    const c = data.ohlcv as any;
+    formatted.push(`OHLCV: O:${c.open?.toFixed(2)} H:${c.high?.toFixed(2)} L:${c.low?.toFixed(2)} C:${c.close?.toFixed(2)} V:${c.volume}`);
+  }
+  if (data.bricks !== undefined) formatted.push(`Bricks: ${data.bricks}`);
+  if (data.brickSize) formatted.push(`Brick: $${Number(data.brickSize).toFixed(1)}`);
+  if (data.trend) formatted.push(`Trend: ${data.trend}`);
+  if (data.equity) formatted.push(`Equity: $${Number(data.equity).toLocaleString()}`);
+  if (data.status) formatted.push(`Status: ${data.status}`);
+  
+  return formatted;
+};
+
 const LogEntry = ({ log, expanded, onToggle }: { 
   log: LogEntry; 
   expanded: boolean; 
   onToggle: () => void;
-}) => (
-  <div className="border-b border-gray-800 last:border-b-0">
-    <div className="flex items-start gap-3 p-4 hover:bg-gray-800/50 transition-colors">
-      <div className="flex-shrink-0 pt-1">
-        <LogLevelBadge level={log.level} />
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-sm text-white font-medium leading-relaxed">
-            {log.message}
-          </p>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs text-gray-400">
-              {new Date(log.timestamp).toLocaleTimeString()}
-            </span>
-            {log.data && Object.keys(log.data).length > 0 && (
-              <button
-                onClick={onToggle}
-                className="p-1 hover:bg-gray-700 rounded transition-colors"
-              >
-                {expanded ? (
-                  <EyeOff className="h-4 w-4 text-gray-400" />
-                ) : (
-                  <Eye className="h-4 w-4 text-gray-400" />
-                )}
-              </button>
-            )}
-          </div>
+}) => {
+  const tradingInfo = log.data ? formatTradingData(log.data) : [];
+  
+  return (
+    <div className="border-b border-gray-800 last:border-b-0">
+      <div className="flex items-start gap-3 p-4 hover:bg-gray-800/50 transition-colors">
+        <div className="flex-shrink-0 pt-1">
+          <LogLevelBadge level={log.level} />
         </div>
         
-        {expanded && log.data && Object.keys(log.data).length > 0 && (
-          <div className="mt-2 p-3 bg-gray-900 rounded border border-gray-700">
-            <pre className="text-xs text-gray-300 overflow-x-auto">
-              {JSON.stringify(log.data, null, 2)}
-            </pre>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <p className="text-sm text-white font-medium leading-relaxed">
+                {log.message}
+              </p>
+              {tradingInfo.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {tradingInfo.map((info, index) => (
+                    <span key={index} className="text-xs text-blue-400 bg-blue-900/30 px-2 py-1 rounded">
+                      {info}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs text-gray-400">
+                {new Date(log.timestamp).toLocaleTimeString()}
+              </span>
+              {log.data && Object.keys(log.data).length > 0 && (
+                <button
+                  onClick={onToggle}
+                  className="p-1 hover:bg-gray-700 rounded transition-colors"
+                >
+                  {expanded ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
-        )}
+          
+          {expanded && log.data && Object.keys(log.data).length > 0 && (
+            <div className="mt-2 p-3 bg-gray-900 rounded border border-gray-700">
+              <pre className="text-xs text-gray-300 overflow-x-auto">
+                {JSON.stringify(log.data, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default function LogsViewer() {
   const [logsData, setLogsData] = useState<LogsData | null>(null);
@@ -90,6 +128,7 @@ export default function LogsViewer() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const logsContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -119,7 +158,13 @@ export default function LogsViewer() {
   useEffect(() => {
     // Auto-scroll to bottom when new logs arrive
     if (logsData && autoRefresh) {
-      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        // Try multiple scroll methods for reliability
+        if (logsContainerRef.current) {
+          logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
+        }
+        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100); // Small delay to ensure DOM is updated
     }
   }, [logsData, autoRefresh]);
 
@@ -185,7 +230,10 @@ export default function LogsViewer() {
                 className="px-3 py-1 bg-gray-800 border border-gray-700 rounded text-sm text-white"
               >
                 <option value="all">All Levels</option>
+                <option value="market">Market Data</option>
+                <option value="trade">Trading</option>
                 <option value="info">Info</option>
+                <option value="success">Success</option>
                 <option value="warn">Warnings</option>
                 <option value="error">Errors</option>
                 <option value="debug">Debug</option>
@@ -228,7 +276,7 @@ export default function LogsViewer() {
 
       {/* Logs Display */}
       <Card className="overflow-hidden">
-        <div className="max-h-96 overflow-y-auto">
+        <div ref={logsContainerRef} className="max-h-96 overflow-y-auto">
           {logsData && logsData.logs.length > 0 ? (
             <div>
               {logsData.logs.map((log, index) => (

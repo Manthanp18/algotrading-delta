@@ -1,0 +1,7 @@
+{"timestamp":"2025-08-18T09:43:20.621Z","level":"market","message":"Price Tick","data":{"price":115024.450736,"tick":48,"currentCandle":3,"activeStrategy":"PRIMARY"}}
+{"timestamp":"2025-08-18T09:43:23.305Z","level":"info","message":"========== TRADING STATUS UPDATE ==========","data":{"runtime":"0h 4m","candle":3,"updates":48,"updateRate":"0.2","signals":0,"trades":0,"equity":100000,"dailyPnL":0,"marketRegime":"TRENDING","activeStrategy":"PRIMARY","connectionStatus":"✅ Connected"}}
+{"timestamp":"2025-08-18T09:43:23.306Z","level":"info","message":"SUPERTREND RENKO STATUS","data":{"bricks":0,"brickSize":0,"trend":"0 INIT","trendStrength":"0.0","signals":0,"avgConfluence":"0.00","activeStrategy":"ACTIVE"}}
+{"timestamp":"2025-08-18T09:43:23.307Z","level":"info","message":"BOLLINGER RENKO STATUS","data":{"bricks":0,"brickSize":0,"trend":"0 INIT","trendStrength":"0.0","signals":0,"bbBounces":0,"activeStrategy":"STANDBY"}}
+{"timestamp":"2025-08-18T09:43:23.308Z","level":"info","message":"POSITION STATUS","data":{"status":"NO POSITION","cash":100000,"candle":3}}
+{"timestamp":"2025-08-18T09:43:25.631Z","level":"market","message":"Price Tick","data":{"price":115022.159179,"tick":49,"currentCandle":3,"activeStrategy":"PRIMARY"}}
+{"timestamp":"2025-08-18T09:43:25.632Z","level":"info","message":"Candle Completed","data":{"candle":4,"ohlcv":{"timestamp":"2025-08-18T09:42:25.476Z","open":115015,"high":115025.5,"low":114987.5,"close":115025.5,"volume":3795488},"activeStrategy":"PRIMARY","marketRegime":"TRENDING","duration":"60.156s"}}

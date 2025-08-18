@@ -205,14 +205,14 @@ export default function AnalyticsDashboard() {
 
         <MetricCard
           title="Profit Factor"
-          value={analytics.profitFactor.toFixed(2)}
-          valueColor={analytics.profitFactor >= 1 ? 'success' : 'error'}
+          value={(analytics.profitFactor || 0).toFixed(2)}
+          valueColor={(analytics.profitFactor || 0) >= 1 ? 'success' : 'error'}
           icon={<TrendingUp className="h-4 w-4" />}
         />
 
         <MetricCard
           title="Avg Holding Period"
-          value={`${analytics.averageHoldingPeriod.toFixed(1)}m`}
+          value={`${(analytics.averageHoldingPeriod || 0).toFixed(1)}m`}
           icon={<Target className="h-4 w-4" />}
         />
 

@@ -68,7 +68,21 @@ function getEmptyResponse(endpoint: string) {
     return {
       totalTrades: 0,
       winRate: 0,
-      totalPnL: 0
+      totalPnL: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+      profitFactor: 0,
+      averageHoldingPeriod: 0,
+      averageWin: 0,
+      averageLoss: 0,
+      longWinRate: 0,
+      shortWinRate: 0,
+      longTrades: 0,
+      shortTrades: 0,
+      maxWin: 0,
+      maxLoss: 0,
+      pnlChartData: [],
+      hourlyBreakdown: []
     };
   }
   
