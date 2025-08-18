@@ -46,7 +46,7 @@ const formatTradingData = (data: Record<string, unknown>) => {
   if (data.activeStrategy) formatted.push(`Strategy: ${data.activeStrategy}`);
   if (data.marketRegime) formatted.push(`Regime: ${data.marketRegime}`);
   if (data.ohlcv) {
-    const c = data.ohlcv as any;
+    const c = data.ohlcv as { open?: number; high?: number; low?: number; close?: number; volume?: number };
     formatted.push(`OHLCV: O:${c.open?.toFixed(2)} H:${c.high?.toFixed(2)} L:${c.low?.toFixed(2)} C:${c.close?.toFixed(2)} V:${c.volume}`);
   }
   if (data.bricks !== undefined) formatted.push(`Bricks: ${data.bricks}`);
