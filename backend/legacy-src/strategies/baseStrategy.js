@@ -28,6 +28,25 @@ class BaseStrategy {
     return ema;
   }
 
+  calculateEMAArray(data, period) {
+    if (data.length < period) return null;
+    
+    const multiplier = 2 / (period + 1);
+    const emaArray = [];
+    
+    // Initial SMA for the first EMA value
+    let ema = data.slice(0, period).reduce((acc, candle) => acc + candle.close, 0) / period;
+    emaArray.push(ema);
+    
+    // Calculate EMA for the rest of the data
+    for (let i = period; i < data.length; i++) {
+      ema = (data[i].close * multiplier) + (ema * (1 - multiplier));
+      emaArray.push(ema);
+    }
+    
+    return emaArray;
+  }
+
   calculateRSI(data, period = 14) {
     if (data.length < period + 1) return null;
     
@@ -73,7 +92,7 @@ class BaseStrategy {
   }
 
   calculateMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
-    if (data.length < slowPeriod) return null;
+    if (data.length < slowPeriod + signalPeriod) return null;
     
     // Validate data elements
     for (let i = 0; i < data.length; i++) {
@@ -82,18 +101,56 @@ class BaseStrategy {
       }
     }
     
-    const fastEMA = this.calculateEMA(data, fastPeriod);
-    const slowEMA = this.calculateEMA(data, slowPeriod);
+    // Calculate EMA arrays (not just final values)
+    const fastEMAArray = this.calculateEMAArray(data, fastPeriod);
+    const slowEMAArray = this.calculateEMAArray(data, slowPeriod);
     
-    if (!fastEMA || !slowEMA) return null;
+    if (!fastEMAArray || !slowEMAArray) return null;
     
-    const macdLine = fastEMA - slowEMA;
+    // Calculate MACD line array
+    const macdArray = [];
+    const minLength = Math.min(fastEMAArray.length, slowEMAArray.length);
     
-    // Simplified signal line calculation (just use the MACD line for now)
-    const signalLine = macdLine;
-    const histogram = macdLine - signalLine;
+    for (let i = 0; i < minLength; i++) {
+      macdArray.push(fastEMAArray[i] - slowEMAArray[i]);
+    }
     
-    return { macd: macdLine, signal: signalLine, histogram: histogram };
+    if (macdArray.length < signalPeriod) return null;
+    
+    // Convert MACD array to format for EMA calculation
+    const macdData = macdArray.map(value => ({ close: value }));
+    
+    // Calculate proper signal line as EMA of MACD
+    const signalEMA = this.calculateEMA(macdData, signalPeriod);
+    const macdLine = macdArray[macdArray.length - 1]; // Current MACD value
+    const histogram = macdLine - signalEMA;
+    
+    // Determine direction and crossover
+    let direction = 'NEUTRAL';
+    let crossover = null;
+    
+    if (macdLine > 0 && histogram > 0) direction = 'BULLISH';
+    else if (macdLine < 0 && histogram < 0) direction = 'BEARISH';
+    
+    // Check for crossovers (if we have previous values)
+    if (macdArray.length > 1) {
+      const prevMACD = macdArray[macdArray.length - 2];
+      const prevSignal = this.calculateEMA(macdData.slice(0, -1), signalPeriod);
+      
+      if (prevMACD <= prevSignal && macdLine > signalEMA) {
+        crossover = 'BULLISH_CROSSOVER';
+      } else if (prevMACD >= prevSignal && macdLine < signalEMA) {
+        crossover = 'BEARISH_CROSSOVER';
+      }
+    }
+    
+    return { 
+      macd: macdLine, 
+      signal: signalEMA, 
+      histogram: histogram,
+      direction: direction,
+      crossover: crossover
+    };
   }
 
   calculateVolumeMA(data, period) {

@@ -430,33 +430,70 @@ class RenkoEngine extends EventEmitter {
     const currentBrick = brickData[brickData.length - 1];
     const hl2 = (currentBrick.high + currentBrick.low) / 2;
 
-    // SuperTrend calculation
+    // SuperTrend calculation with proper trend persistence
     const basicUpperBand = hl2 + (multiplier * currentATR);
     const basicLowerBand = hl2 - (multiplier * currentATR);
 
-    // Determine trend direction
+    // Get previous SuperTrend data for trend persistence
+    const prevSuperTrend = this.lastSuperTrend || { direction: null, value: null };
+    
+    let finalUpperBand = basicUpperBand;
+    let finalLowerBand = basicLowerBand;
+    
+    // Apply trend persistence rules
+    if (brickData.length > 1) {
+      const prevClose = brickData[brickData.length - 2].close;
+      
+      // Upper band: only move down if price is above previous upper band
+      if (basicUpperBand < prevSuperTrend.upperBand && prevClose > prevSuperTrend.upperBand) {
+        finalUpperBand = prevSuperTrend.upperBand;
+      }
+      
+      // Lower band: only move up if price is below previous lower band  
+      if (basicLowerBand > prevSuperTrend.lowerBand && prevClose < prevSuperTrend.lowerBand) {
+        finalLowerBand = prevSuperTrend.lowerBand;
+      }
+    }
+
+    // Determine trend direction with proper logic
     let superTrendValue, direction;
     const currentClose = currentBrick.close;
+    const prevDirection = prevSuperTrend.direction;
 
-    if (currentClose <= basicLowerBand) {
-      superTrendValue = basicUpperBand;
+    // SuperTrend direction logic
+    if (prevDirection === 'UP' && currentClose <= finalLowerBand) {
       direction = 'DOWN';
-    } else if (currentClose >= basicUpperBand) {
-      superTrendValue = basicLowerBand;
+      superTrendValue = finalUpperBand;
+    } else if (prevDirection === 'DOWN' && currentClose >= finalUpperBand) {
       direction = 'UP';
+      superTrendValue = finalLowerBand;
+    } else if (prevDirection === 'UP') {
+      direction = 'UP';
+      superTrendValue = finalLowerBand;
+    } else if (prevDirection === 'DOWN') {
+      direction = 'DOWN';
+      superTrendValue = finalUpperBand;
     } else {
-      // Use previous trend if available
-      superTrendValue = currentClose > hl2 ? basicLowerBand : basicUpperBand;
+      // Initial determination
       direction = currentClose > hl2 ? 'UP' : 'DOWN';
+      superTrendValue = direction === 'UP' ? finalLowerBand : finalUpperBand;
     }
+
+    // Cache current SuperTrend data for next calculation
+    this.lastSuperTrend = {
+      direction: direction,
+      value: superTrendValue,
+      upperBand: finalUpperBand,
+      lowerBand: finalLowerBand
+    };
 
     return {
       trend: direction,
       value: superTrendValue,
       direction: direction,
       atr: currentATR,
-      upperBand: basicUpperBand,
-      lowerBand: basicLowerBand,
+      upperBand: finalUpperBand,
+      lowerBand: finalLowerBand,
       currentPrice: currentClose
     };
   }
