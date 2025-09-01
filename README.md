@@ -1,322 +1,289 @@
-# AlgoMCP Trading System
+# 🚀 Delta Exchange Algo Trading App
 
-Professional cryptocurrency trading system with SuperTrend Renko strategies and Next.js dashboard.
+A comprehensive MERN stack algorithmic trading application that implements a Renko + EMA + SuperTrend strategy with Delta Exchange API integration and real-time trade simulation.
 
-## 🏗️ Clean Architecture
+## 📊 Strategy Overview
+
+This app implements the **Renko EMA SuperTrend Strategy** with the following components:
+
+### 📈 **Indicators Used:**
+1. **Renko Bricks** - Price action representation filtering minor movements
+2. **EMA 21** - Exponential Moving Average for trend direction 
+3. **SuperTrend (3 levels)** - ATR-based indicators with multipliers 2.1x, 3.1x, 4.1x
+
+### 🎯 **Entry Conditions:**
+- **Long Entry:** Price > EMA21 + All SuperTrends bullish + Green Renko brick
+- **Short Entry:** Price < EMA21 + All SuperTrends bearish + Red Renko brick
+
+### 🚪 **Exit Conditions:**
+- **Long Exit:** Price < EMA21 OR Any SuperTrend bearish OR Red Renko brick
+- **Short Exit:** Price > EMA21 OR Any SuperTrend bullish OR Green Renko brick
+
+## 🏗 Architecture
 
 ```
 AlgoMCP/
-├── backend/                    # Trading engine & API server
-│   ├── legacy-src/            # Core trading logic
-│   │   ├── strategies/        # Trading strategies
-│   │   └── engines/          # Renko & trading engines
-│   ├── dashboard/            # API server only
-│   │   ├── server.js         # Pure API endpoints
-│   │   └── trades/           # Trade data storage
-│   └── package.json          # Backend dependencies
-│
-├── frontend/                  # Next.js dashboard
-│   ├── src/                  # Frontend source code
-│   │   ├── app/api/          # API route handlers
-│   │   ├── components/       # React components
-│   │   └── lib/              # API client & utilities
-│   └── package.json          # Frontend dependencies
-│
-├── start-backend.sh          # Start trading system
-├── start-frontend.sh         # Start dashboard
-└── start-all.sh             # Start everything
+├── backend/                    # Node.js Express API
+│   ├── src/
+│   │   ├── config/            # Database & Delta API config
+│   │   ├── models/            # MongoDB schemas
+│   │   ├── services/          # API & WebSocket services
+│   │   ├── strategies/        # Trading strategy implementation
+│   │   ├── routes/            # REST API routes
+│   │   └── controllers/       # Request handlers
+│   └── package.json
+├── frontend/                   # React Dashboard
+└── .env                       # Environment variables
 ```
 
-## 🚀 Trading Strategy
-
-**SuperTrend Renko Confluence Strategy:**
-- Primary: SuperTrend Renko (trending markets)
-- Secondary: Bollinger Stochastic Renko (ranging markets)  
-- Market regime detection for automatic strategy selection
-- Professional risk management (2% risk, 3:1 R/R)
-- 7/10 minimum confluence score for high-quality signals
-
-## 📊 Dashboard Features
-
-- **Live Positions**: Real-time portfolio tracking with SuperTrend metrics
-- **Trade History**: Complete trading history with filtering
-- **Analytics**: Performance metrics and charts
-- **Market Regime**: TRENDING/RANGING detection with visual indicators
-- **Strategy Metrics**: Confluence scores, SuperTrend signals, MACD confirmations
-- **Auto-refresh**: Real-time data updates every 30 seconds
-
-## 🚀 Quick Start
+## 🛠 Setup Instructions
 
 ### Prerequisites
-- Node.js 18+
-- npm or yarn
-- Docker (optional)
+- Node.js (v20+)
+- MongoDB (local or Atlas)
+- Delta Exchange API credentials
 
-### Simple Start (Recommended)
+### 1. Environment Setup
+Your `.env` file is already configured with Delta Exchange credentials:
 ```bash
-# 1. Clone and setup
-git clone <repository-url>
-cd AlgoMCP
-./setup.sh
-
-# 2. Start the system
-./run-both.sh
+DELTA_API_KEY=your_api_key
+DELTA_API_SECRET=your_api_secret  
+DELTA_BASE_URL=https://api.india.delta.exchange
+MONGODB_URI=mongodb://localhost:27017/algo-trading  # Optional
 ```
 
-### Available Run Scripts
-- `./run-both.sh` - Start both backend and frontend (simple)
-- `./run-backend.sh` - Start backend only (port 3000)
-- `./run-frontend.sh` - Start frontend only (port 3001)
+### 2. Install Dependencies
 
-### Automated Setup
-```bash
-# Clone the repository
-git clone <repository-url>
-cd AlgoMCP
-
-# Run automated setup
-./setup.sh
-
-# Start the system
-./start.sh
-```
-
-### Manual Setup
-
-#### Backend Setup
+**Backend:**
 ```bash
 cd backend
 npm install
-npm run build
-cp .env.example .env  # Update with your configuration
-npm run start:dev
 ```
 
-#### Frontend Setup
+**Frontend:**
 ```bash
 cd frontend
 npm install
-npm run build
+```
+
+### 3. Start the Application
+
+**Start Backend (Terminal 1):**
+```bash
+cd backend
 npm run dev
 ```
+Server runs on: `http://localhost:3001`
 
-## 📖 Usage
-
-### Starting the System
-```bash
-# Start both backend and frontend
-./run-both.sh
-
-# Or individually
-./run-backend.sh      # Backend on port 3000
-./run-frontend.sh     # Frontend on port 3001
-
-# Legacy scripts (also available)
-./start.sh            # Comprehensive startup with health checks
-./start-backend.sh    # Backend with detailed logging
-./start-frontend.sh   # Frontend with build checks
-```
-
-### Accessing the Dashboard
-- **Main Dashboard**: http://localhost:3001
-- **API Documentation**: http://localhost:3000/docs
-- **Health Check**: http://localhost:3000/health
-
-### Running Backtests
-```bash
-# CLI backtesting
-cd backend
-npm run backtest -- --strategy ScalpingStrategy --symbol BTCUSD --start 2024-01-01 --end 2024-12-31
-
-# Or via dashboard
-# Navigate to Analytics > Backtesting
-```
-
-### Live Trading
-```bash
-# Start live trading session
-cd backend
-npm run live -- --strategy ScalpingStrategy --symbol BTCUSD --capital 10000
-
-# Monitor via dashboard
-# Navigate to Positions > Live Trading
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-#### Backend (.env)
-```bash
-# Environment
-NODE_ENV=development
-PORT=3000
-LOG_LEVEL=info
-
-# API Keys
-DELTA_API_KEY=your_api_key
-DELTA_API_SECRET=your_api_secret
-DELTA_BASE_URL=https://api.delta.exchange
-
-# Trading
-DEFAULT_SYMBOL=BTCUSD
-DEFAULT_CAPITAL=100000
-MAX_POSITION_SIZE=0.1
-STOP_LOSS_PERCENT=0.02
-TAKE_PROFIT_PERCENT=0.03
-```
-
-#### Frontend (.env.local)
-```bash
-NEXT_PUBLIC_API_URL=http://localhost:3000
-NEXT_PUBLIC_WS_URL=ws://localhost:3000
-NEXT_PUBLIC_ENVIRONMENT=development
-```
-
-## 📊 Dashboard Features
-
-### Live Positions Tab
-- Real-time portfolio tracking
-- Current position details with unrealized P&L
-- Session uptime and performance metrics
-- Risk management monitoring
-
-### Trade History Tab
-- Complete trading history with full details
-- Advanced filtering by date, status, and type
-- Detailed entry/exit information
-- P&L analysis per trade
-
-### Analytics Tab
-- Comprehensive performance metrics
-- Win rate and profit factor analysis
-- Cumulative P&L charts
-- Hourly performance breakdown
-- Long vs Short trade statistics
-
-## 🧪 Testing
-
-### Backend Testing
-```bash
-cd backend
-npm test                # Run all tests
-npm run test:unit       # Unit tests only
-npm run test:integration # Integration tests
-npm run test:coverage   # Coverage report
-```
-
-### Frontend Testing
+**Start Frontend (Terminal 2):**
 ```bash
 cd frontend
-npm test                # Run all tests
-npm run test:watch      # Watch mode
-npm run test:e2e        # End-to-end tests
+npm run dev
+```
+Dashboard runs on: `http://localhost:5173`
+
+## 🔧 Backend API Endpoints
+
+### **Trading Endpoints**
+- `GET /api/trades` - Get trade history with pagination
+- `GET /api/trades/analytics` - Get trading performance metrics
+- `GET /api/trades/test-connection` - Test Delta Exchange connection
+
+### **Position Endpoints**
+- `GET /api/positions` - Get current positions
+
+### **Market Data Endpoints**
+- `GET /api/market/data` - Get market data (OHLC candles)
+- `GET /api/market/signals` - Get trading signals
+- `GET /api/market/products` - Get Delta Exchange products
+
+### **Health Check**
+- `GET /api/health` - Server health status
+
+## 🌐 WebSocket Events
+
+### **Client → Server**
+- `startWebSocket` - Start real-time data feed
+- `stopWebSocket` - Stop real-time data feed
+
+### **Server → Client**
+- `ticker` - Real-time price updates
+- `orderbook` - Order book updates  
+- `trades` - Recent trades
+- `candle` - New candlestick data
+- `wsStatus` - Connection status updates
+
+## 🧮 Core Strategy Components
+
+### **RenkoCalculator**
+```javascript
+import RenkoCalculator from './src/strategies/RenkoCalculator.js';
+
+const renko = new RenkoCalculator(10.0); // 10.0 brick size
+const bricks = renko.calculateRenko(ohlcData);
 ```
 
-## 🐳 Docker Deployment
+### **IndicatorCalculators**
+```javascript
+import IndicatorCalculators from './src/strategies/IndicatorCalculators.js';
 
-### Development
+// EMA calculation
+const ema = IndicatorCalculators.calculateEMA(prices, 21);
+
+// SuperTrend calculation  
+const st = IndicatorCalculators.calculateSuperTrend(ohlcData, 1, 2.1);
+
+// Multiple SuperTrends
+const multiST = IndicatorCalculators.calculateMultipleSuperTrend(
+  ohlcData, 1, [2.1, 3.1, 4.1]
+);
+```
+
+### **RenkoEMAStrategy**
+```javascript
+import RenkoEMAStrategy from './src/strategies/RenkoEMAStrategy.js';
+
+const strategy = new RenkoEMAStrategy({
+  symbol: 'BTCUSDT',
+  brickSize: 10.0,
+  emaLength: 21,
+  supertrendMultipliers: [2.1, 3.1, 4.1]
+});
+
+await strategy.initialize();
+strategy.start();
+```
+
+## 📊 Database Schema
+
+### **Trades Collection**
+```javascript
+{
+  symbol: 'BTCUSDT',
+  side: 'buy' | 'sell',
+  type: 'entry' | 'exit', 
+  price: 45000,
+  quantity: 0.001,
+  pnl: 15.50,
+  signalData: { ema21, supertrends, renkoBrick },
+  timestamp: Date,
+  isSimulated: true
+}
+```
+
+### **Positions Collection**
+```javascript
+{
+  symbol: 'BTCUSDT',
+  side: 'long' | 'short' | 'none',
+  entryPrice: 45000,
+  quantity: 0.001,
+  unrealizedPnL: 12.30,
+  isActive: true,
+  timestamp: Date
+}
+```
+
+### **MarketData Collection**
+```javascript
+{
+  symbol: 'BTCUSDT',
+  timestamp: Date,
+  open: 45000,
+  high: 45200, 
+  low: 44800,
+  close: 45100,
+  volume: 1000
+}
+```
+
+## 🚀 Features Implemented
+
+### ✅ **Phase 1 - Foundation**
+- [x] MERN stack project structure
+- [x] MongoDB schemas and database connection
+- [x] Delta Exchange API integration with authentication
+- [x] WebSocket service for real-time data
+- [x] Express REST API with routes and controllers
+
+### ✅ **Phase 2 - Strategy Engine**  
+- [x] Renko brick calculation (converted from Python)
+- [x] EMA and SuperTrend indicator calculators
+- [x] Complete trading strategy with signal generation
+- [x] Trade simulation system (paper trading)
+- [x] Position management and PnL tracking
+
+### 🔄 **Phase 3 - Dashboard (In Progress)**
+- [ ] React dashboard with real-time charts
+- [ ] Trade management interface
+- [ ] Performance analytics display
+- [ ] Strategy configuration panel
+
+## 🧪 Testing the Backend
+
+### 1. Test Delta API Connection
 ```bash
-# Start with Docker Compose
-docker-compose -f docker-compose.dev.yml up -d
-
-# View logs
-docker-compose logs -f
+curl http://localhost:3001/api/trades/test-connection
 ```
 
-### Production
+### 2. Test Health Endpoint
 ```bash
-# Build and start production containers
-docker-compose up -d
-
-# Scale services
-docker-compose up -d --scale backend=3
+curl http://localhost:3001/api/health
 ```
 
-## 📚 Documentation
+### 3. Get Market Data
+```bash
+curl "http://localhost:3001/api/market/data?symbol=BTCUSDT&limit=100"
+```
 
-- **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - Complete architecture guide
-- **[backend/README.md](backend/README.md)** - Backend documentation
-- **[frontend/README.md](frontend/README.md)** - Frontend documentation
-- **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** - Development guidelines
-- **[API_REFERENCE.md](API_REFERENCE.md)** - API documentation
+### 4. WebSocket Test
+```javascript
+// In browser console or frontend
+const socket = io('http://localhost:3001');
+socket.emit('startWebSocket', { symbol: 'BTCUSDT' });
+```
 
-## 🔒 Security
+## 📈 Performance Features
 
-### Built-in Security Features
-- **Input Validation**: Comprehensive data validation
-- **Rate Limiting**: API request throttling
-- **CORS Protection**: Cross-origin request controls
-- **Environment Variables**: Secure configuration management
-- **Error Handling**: Safe error responses
+- **Rate Limiting:** Respects Delta Exchange limits (10k requests/5min)
+- **Database Indexing:** Optimized queries on symbol and timestamp
+- **Real-time Updates:** Sub-second WebSocket data processing
+- **Error Handling:** Comprehensive error management and logging
+- **Reconnection Logic:** Automatic WebSocket reconnection
 
-### Best Practices
-- Never commit API keys or secrets
-- Use environment variables for configuration
-- Regularly update dependencies
-- Monitor for security vulnerabilities
+## 🔒 Security & Risk Management
 
-## 🚀 Performance
+- **API Key Security:** Credentials stored in environment variables
+- **Simulation Only:** No real trading execution (paper trading)
+- **Input Validation:** All API inputs validated and sanitized
+- **Rate Limiting:** Built-in request throttling
 
-### Optimization Features
-- **Caching**: Redis for session data
-- **Code Splitting**: Optimized bundle sizes
-- **Lazy Loading**: On-demand component loading
-- **Compression**: Gzip response compression
-- **Connection Pooling**: Efficient API connections
+## 📚 Development Notes
 
-### Benchmarks
-- **Backend**: 1000+ requests/second
-- **Frontend**: Sub-second page loads
-- **Real-time**: <100ms WebSocket latency
-- **Memory**: <500MB under normal load
+### **Strategy Conversion**
+The Python strategy has been faithfully converted to Node.js with:
+- Identical Renko brick calculation logic
+- Same EMA and SuperTrend formulas
+- Equivalent entry/exit conditions
+- Real-time processing capabilities
+
+### **Trade Simulation**
+- All trades are simulated (no real money)
+- PnL calculations based on live market prices
+- Position tracking with unrealized/realized PnL
+- Complete trade history and analytics
+
+### **Next Steps**
+1. Complete React dashboard implementation
+2. Add advanced charting with TradingView
+3. Implement backtesting capabilities
+4. Add more risk management features
+5. Deploy to production environment
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-- Follow TypeScript strict mode
-- Write tests for new features
-- Update documentation
-- Follow the established code style
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-### Common Issues
-- **Port conflicts**: Change ports in configuration files
-- **API errors**: Verify API keys and network connectivity
-- **Build failures**: Clear node_modules and reinstall
-
-### Getting Help
-1. Check the documentation
-2. Search existing issues
-3. Create a new issue with detailed information
-
-## 🔄 Updates
-
-### Recent Changes
-- ✅ Enterprise-grade architecture implementation
-- ✅ Advanced risk management system
-- ✅ Real-time WebSocket integration
-- ✅ Comprehensive testing framework
-- ✅ Docker containerization
-
-### Roadmap
-- 🔄 Multi-exchange support
-- 🔄 Advanced charting features
-- 🔄 Machine learning strategies
-- 🔄 Mobile app development
-- 🔄 Cloud deployment guides
+This is the foundation for a complete algorithmic trading system. The backend is fully functional and ready for frontend development and additional strategy implementations.
 
 ---
 
-**⚠️ Disclaimer**: This software is for educational and testing purposes. Live trading involves significant financial risk. Always test thoroughly before using real money.
+**⚠️ Disclaimer:** This is for educational purposes only. All trading is simulated. Always test thoroughly before considering any real trading implementation.

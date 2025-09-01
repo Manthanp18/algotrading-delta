@@ -1,38 +1,28 @@
 {
-  "name": "backtesting-engine",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "A backtesting engine for trading strategies using Delta Exchange API",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node live-trading-supertrend-renko.js",
-    "dev": "nodemon live-trading-supertrend-renko.js",
-    "start:dev": "nodemon live-trading-supertrend-renko.js",
-    "test": "jest",
-    "backtest": "node index.js",
-    "backtest:cli": "node cli.js run",
-    "results": "node cli.js list",
-    "cli": "node cli.js",
-    "live": "node live-trading-continuous.js",
-    "build": "echo 'No build required for JavaScript backend'"
+    "start": "node src/trading-server.js",
+    "dev": "nodemon src/trading-server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dependencies": {
-    "axios": "^1.6.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.0",
-    "express": "^5.1.0",
-    "fs-extra": "^11.3.1",
-    "ws": "^8.18.3"
-  },
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "nodemon": "^3.0.0"
-  },
-  "keywords": [
-    "backtesting",
-    "trading",
-    "delta-exchange",
-    "cryptocurrency"
-  ],
+  "type": "module",
+  "keywords": [],
   "author": "",
-  "license": "MIT"
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "mongoose": "^8.18.0",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.10",
+    "socket.io": "^4.8.1",
+    "ws": "^8.18.3"
+  }
 }
